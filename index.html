@@ -1,983 +1,1832 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Construction Time-Cost Trade-off Analyzer</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
-        
-        body { font-family: 'Inter', 'Noto Sans KR', sans-serif; }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Construction Time-Cost Trade-off Analyzer</title>
 
-        .chart-container {
-            position: relative;
-            width: 100%;
-            height: 400px;
-            max-height: 450px;
-        }
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
-        .custom-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 18px;
-            height: 18px;
-            background: #2563eb;
-            cursor: pointer;
-            border-radius: 50%;
-            border: 2px solid white;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
+    body { font-family: 'Inter', 'Noto Sans KR', sans-serif; }
 
-        .custom-slider::-moz-range-thumb {
-            width: 18px;
-            height: 18px;
-            background: #2563eb;
-            cursor: pointer;
-            border-radius: 50%;
-            border: 2px solid white;
-        }
+    .chart-container {
+      position: relative;
+      width: 100%;
+      height: 400px;
+      max-height: 450px;
+    }
 
-        .report-section h3 {
-            border-left: 4px solid #2563eb;
-            padding-left: 1rem;
-            margin-bottom: 1rem;
-            margin-top: 2rem;
-        }
+    .custom-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      background: #2563eb;
+      cursor: pointer;
+      border-radius: 50%;
+      border: 2px solid white;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
 
-        /* 부드러운 스크롤 */
-        html { scroll-behavior: smooth; }
-    </style>
+    .custom-slider::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      background: #2563eb;
+      cursor: pointer;
+      border-radius: 50%;
+      border: 2px solid white;
+    }
+
+    .report-section h3 {
+      border-left: 4px solid #2563eb;
+      padding-left: 1rem;
+      margin-bottom: 1rem;
+      margin-top: 2rem;
+    }
+
+    html { scroll-behavior: smooth; }
+    .tooltip { position: relative; display: inline-block; }
+  </style>
 </head>
+
 <body class="bg-slate-50 text-slate-800 antialiased">
 
-    <!-- Header Section -->
-    <header class="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-50 shadow-md">
-        <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
-            <div class="flex items-center gap-3">
-                <div class="bg-blue-600 p-2.5 rounded-xl shadow-lg shadow-blue-900/20 text-white">
-                    <i class="fa-solid fa-calculator text-xl"></i>
-                </div>
-                <div>
-                    <h1 class="text-xl font-black tracking-tight leading-none uppercase">CM Simulator</h1>
-                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1 italic">Advanced Time-Cost Trade-off</p>
-                </div>
-            </div>
-            <div class="flex gap-4">
-                <a href="#report" class="text-xs font-bold text-slate-300 hover:text-white flex items-center gap-2 border border-slate-700 px-4 py-2 rounded-xl transition-all hover:bg-slate-800">
-                    <i class="fa-solid fa-file-contract"></i> 분석 보고서 보기
-                </a>
-                <div class="bg-blue-600/20 text-blue-400 border border-blue-500/30 px-4 py-2 rounded-xl text-xs font-black">
-                    법정 표준공기: <span id="standardDurationValue">--</span>일
-                </div>
-            </div>
+  <!-- Header -->
+  <header class="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-50 shadow-md">
+    <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+      <div class="flex items-center gap-3">
+        <div class="bg-blue-600 p-2.5 rounded-xl shadow-lg shadow-blue-900/20 text-white">
+          <i class="fa-solid fa-calculator text-xl"></i>
         </div>
-    </header>
+        <div>
+          <h1 class="text-xl font-black tracking-tight leading-none uppercase">CM Simulator</h1>
+          <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1 italic">Advanced Time-Cost Trade-off</p>
+        </div>
+      </div>
+      <div class="flex gap-4">
+        <a href="#report" class="text-xs font-bold text-slate-300 hover:text-white flex items-center gap-2 border border-slate-700 px-4 py-2 rounded-xl transition-all hover:bg-slate-800">
+          <i class="fa-solid fa-file-contract"></i> 분석 보고서 보기
+        </a>
+      </div>
+    </div>
+  </header>
 
-    <main class="container mx-auto px-4 py-8 space-y-8 max-w-6xl">
+  <main class="container mx-auto px-4 py-8 space-y-8 max-w-6xl">
 
-        <!-- Section 1: Global Setup -->
-        <section class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200">
-            <div class="flex items-center gap-3 mb-6">
-                <i class="fa-solid fa-gears text-blue-600 text-xl"></i>
-                <h2 class="text-lg font-bold text-slate-900 leading-none tracking-tight">프로젝트 기초 설정</h2>
+    <!-- Section 1: Setup -->
+    <section class="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-slate-200">
+      <div class="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+        <i class="fa-solid fa-gears text-blue-600 text-xl"></i>
+        <h2 class="text-lg font-bold text-slate-900 leading-none tracking-tight">프로젝트 기초 설정 및 공기 산정 계수</h2>
+      </div>
+
+      <div class="space-y-6">
+        <!-- Row 1 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Contract -->
+          <div class="bg-slate-50 rounded-xl p-5 border border-slate-100">
+            <h3 class="text-xs font-black text-slate-700 mb-4 flex items-center gap-2">
+              <i class="fa-solid fa-file-signature text-slate-400"></i> 기본 계약 정보
+            </h3>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-1.5">
+                <label class="text-[11px] font-bold text-blue-600 uppercase tracking-wider">계약공기 (일)</label>
+                <input type="number" id="targetNormalDuration" value="792" onchange="updateGlobalState()"
+                  class="w-full bg-blue-50 border border-blue-200 rounded-lg px-3 py-2.5 text-sm font-black text-blue-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
+              </div>
+              <div class="space-y-1.5">
+                <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider tooltip" title="전기, 통신, 소방 공사비 제외">계약금액 (백만)</label>
+                <input type="number" id="contractAmount" value="49050" step="100" onchange="updateGlobalState()"
+                  class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
+              </div>
+              <div class="space-y-1.5 col-span-2">
+                <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">공사 유형</label>
+                <select id="projectType" onchange="updateGlobalState()"
+                  class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer">
+                  <option value="office" selected>업무시설(기타 건축물) - 근거기반 WBS</option>
+                  <option value="building">건축(간이 산정/참고)</option>
+                  <option value="civil">토목 (Bromilow 모형)</option>
+                  <option value="plant">플랜트/기타 (Bromilow 모형)</option>
+                </select>
+              </div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div class="space-y-2">
-                    <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">공사 유형</label>
-                    <select id="projectType" onchange="updateGlobalState()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer">
-                        <option value="building">건축 (K=25, B=0.32)</option>
-                        <option value="civil">토목 (K=30, B=0.30)</option>
-                        <option value="plant">플랜트/기타 (K=35, B=0.35)</option>
-                    </select>
-                </div>
-                <div class="space-y-2">
-                    <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">직접 공사비 (백만)</label>
-                    <input type="number" id="baseDirectCost" value="23300" step="100" onchange="updateGlobalState()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-black text-blue-600 focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
-                </div>
-                <div class="space-y-2">
-                    <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">행정기간 (준비+인허가)</label>
-                    <input type="number" id="adminDays" value="60" onchange="updateGlobalState()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500" />
-                </div>
-                <div class="flex items-end">
-                    <button onclick="distributeTasks()" class="w-full bg-slate-900 text-white rounded-xl py-2.5 text-xs font-black hover:bg-black transition-all shadow-md active:scale-95 flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-arrows-rotate"></i> 공정 데이터 초기화
-                    </button>
-                </div>
+          </div>
+
+          <!-- Building Scale -->
+          <div class="bg-amber-50/40 rounded-xl p-5 border border-amber-100/50" id="buildingScaleContainer">
+            <h3 class="text-xs font-black text-amber-800 mb-4 flex items-center gap-2">
+              <i class="fa-solid fa-building text-amber-600/70"></i> 건축 규모 정보
+              <span class="ml-auto text-[10px] text-amber-600 italic bg-white px-2 py-0.5 rounded-full border border-amber-200">옥탑 1개층 상시 반영</span>
+            </h3>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-1.5 col-span-2">
+                <label class="text-[11px] font-bold text-amber-700 uppercase tracking-wider flex items-center gap-1">
+                  <i class="fa-solid fa-vector-square"></i> 연면적 (㎡)
+                </label>
+                <input type="number" id="floorArea" value="17545" step="100" onchange="updateGlobalState()"
+                  class="w-full bg-white border border-amber-200 rounded-lg px-3 py-2.5 text-sm font-bold text-amber-900 focus:ring-2 focus:ring-amber-500 outline-none transition-all" />
+              </div>
+              <div class="space-y-1.5">
+                <label class="text-[11px] font-bold text-amber-700 uppercase tracking-wider flex items-center gap-1">
+                  <i class="fa-solid fa-arrow-down"></i> 지하 층수
+                </label>
+                <input type="number" id="ugFloors" value="1" min="0" onchange="updateGlobalState()"
+                  class="w-full bg-white border border-amber-200 rounded-lg px-3 py-2.5 text-sm font-bold text-amber-900 focus:ring-2 focus:ring-amber-500 outline-none text-center transition-all" />
+              </div>
+              <div class="space-y-1.5">
+                <label class="text-[11px] font-bold text-amber-700 uppercase tracking-wider flex items-center gap-1">
+                  <i class="fa-solid fa-arrow-up"></i> 지상 층수
+                </label>
+                <input type="number" id="agFloors" value="5" min="1" onchange="updateGlobalState()"
+                  class="w-full bg-white border border-amber-200 rounded-lg px-3 py-2.5 text-sm font-bold text-amber-900 focus:ring-2 focus:ring-amber-500 outline-none text-center transition-all" />
+              </div>
             </div>
-        </section>
-
-        <!-- Section 2: Simulator Core -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-            
-            <!-- Simulation Sliders -->
-            <div class="lg:col-span-2 bg-white rounded-[2.5rem] shadow-sm border border-slate-200 overflow-hidden">
-                <div class="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                    <h2 class="font-bold text-slate-900 flex items-center gap-2">
-                        <i class="fa-solid fa-network-wired text-blue-500"></i> 공정별 단축 시뮬레이션
-                    </h2>
-                    <div class="flex gap-2 text-[10px] font-black uppercase">
-                        <span class="bg-rose-100 text-rose-600 px-2 py-1 rounded">Critical Path (CP)</span>
-                        <span class="bg-slate-200 text-slate-600 px-2 py-1 rounded italic">Admin / Fixed</span>
-                    </div>
-                </div>
-                <div id="taskSlidersContainer" class="p-6 space-y-6">
-                    <!-- Task Sliders will be injected here via JS -->
-                </div>
-            </div>
-
-            <!-- Summary & Optimizer -->
-            <div class="space-y-6 sticky top-24">
-                <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200">
-                    <h2 class="font-bold text-slate-900 mb-6 flex items-center gap-2">
-                        <i class="fa-solid fa-chart-pie text-emerald-500 text-lg"></i> 시뮬레이션 요약
-                    </h2>
-                    <div class="space-y-6">
-                        <div class="bg-slate-900 p-6 rounded-3xl text-white shadow-xl relative overflow-hidden group">
-                            <div class="absolute -right-4 -top-4 w-24 h-24 bg-blue-600/20 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-700"></div>
-                            <div class="text-[10px] text-slate-400 font-bold mb-1 uppercase tracking-widest relative z-10">최종 예상 공기</div>
-                            <div class="text-4xl font-black flex items-baseline gap-1 relative z-10">
-                                <span id="currentDurationDisplay">--</span> <span class="text-sm text-slate-500">일</span>
-                            </div>
-                            <div class="mt-4 pt-4 border-t border-slate-800 flex justify-between text-[11px] font-bold relative z-10">
-                                <span class="text-slate-400">계약공기 대비</span>
-                                <span id="durationDiffDisplay" class="text-blue-400">-- 일</span>
-                            </div>
-                        </div>
-
-                        <div class="space-y-4 px-2">
-                            <div class="flex justify-between items-center text-sm font-medium">
-                                <span class="text-slate-400">직접비 누계</span>
-                                <span id="directCostDisplay" class="text-slate-900 font-bold tracking-tight">-- 백만</span>
-                            </div>
-                            <div class="flex justify-between items-center text-sm font-medium">
-                                <span class="text-slate-400">간접비(유지비)</span>
-                                <span id="indirectCostDisplay" class="text-emerald-500 font-bold tracking-tight">-- 백만</span>
-                            </div>
-                            <div class="pt-4 border-t border-slate-100 flex justify-between items-center">
-                                <span class="font-black text-slate-900 text-lg">총 공사비</span>
-                                <span id="totalCostDisplay" class="text-3xl font-black text-blue-600 tracking-tighter">-- 백만</span>
-                            </div>
-                        </div>
-
-                        <div id="optimizerPanel" class="bg-emerald-50 border border-emerald-100 p-4 rounded-2xl hidden animate-in fade-in slide-in-from-bottom-2">
-                            <div class="flex gap-3 mb-3">
-                                <div class="bg-emerald-500 text-white w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-sm"><i class="fa-solid fa-lightbulb"></i></div>
-                                <div>
-                                    <p class="text-xs font-black text-emerald-800 uppercase tracking-tighter">최소비용공기 (MC Point)</p>
-                                    <p class="text-[10px] text-emerald-600 mt-0.5 leading-snug">현 지점보다 더 경제적인 공기가 존재합니다.</p>
-                                </div>
-                            </div>
-                            <button onclick="applyOptimalState()" class="w-full py-3 bg-emerald-600 text-white rounded-xl text-xs font-black hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20 active:scale-95">
-                                <i class="fa-solid fa-play"></i> <span id="optimalDurationText">--</span>일로 최적화 적용
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Optimizer Panel -->
-                <div class="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-2xl overflow-hidden relative">
-                    <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-blue-600/10 rounded-full blur-3xl"></div>
-                    <div class="relative z-10">
-                        <div class="flex justify-between items-center mb-4">
-                            <h2 class="text-lg font-black flex items-center gap-2"><i class="fa-solid fa-crosshairs text-blue-400"></i> 목표 단축 검토</h2>
-                        </div>
-                        <div class="flex flex-col gap-2 mb-6">
-                            <div class="flex items-center gap-3">
-                                <input type="number" id="targetDaysInput" value="30" onchange="updateTargetUI()" class="w-20 bg-slate-800 border border-slate-700 rounded-xl px-3 py-3 text-xl font-black text-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center transition-all" />
-                                <span class="font-bold text-slate-500">일 단축 목표</span>
-                            </div>
-                            <div class="text-[10px] text-slate-400 font-medium ml-1">최대 가능 단축: <span id="maxCrashPossibleDisplay" class="font-bold text-slate-300">--</span>일</div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-3 mb-6">
-                            <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-700/50">
-                                <div class="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-1">추가 직접비</div>
-                                <div id="targetAddDirect" class="text-lg font-black text-rose-400">+0</div>
-                            </div>
-                            <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-700/50">
-                                <div class="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-1">절감 유지비</div>
-                                <div id="targetSubIndirect" class="text-lg font-black text-emerald-400">-0</div>
-                            </div>
-                        </div>
-                        <button onclick="applyTargetDuration()" class="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black text-sm transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2 uppercase tracking-tight">
-                            최적 단축 경로 적용
-                        </button>
-                    </div>
-                </div>
-            </div>
+          </div>
         </div>
 
-        <!-- Section 3: Visual Analytics -->
-        <div class="grid grid-cols-1 gap-8">
-            <!-- Gantt Chart -->
-            <div class="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-200">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
-                    <div>
-                        <h2 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-                            <i class="fa-solid fa-align-left text-blue-600"></i> 단축 전/후 공정 비교
-                        </h2>
-                        <p class="text-slate-500 text-xs mt-1 font-medium italic">Normal Contract Schedule (Gray) vs Current Simulation (Colored)</p>
-                    </div>
-                    <div class="flex gap-4 text-[10px] font-black text-slate-500 uppercase tracking-widest bg-slate-50 px-5 py-2 rounded-full border border-slate-100">
-                        <span class="flex items-center gap-2"><div class="w-3 h-3 bg-slate-300 rounded-sm"></div> 계약일정</span>
-                        <span class="flex items-center gap-2"><div class="w-3 h-3 bg-rose-400 rounded-sm"></div> 주공정(CP)</span>
-                        <span class="flex items-center gap-2"><div class="w-3 h-3 bg-blue-400 rounded-sm"></div> 일반공정</span>
-                    </div>
+        <!-- Row 2 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Constraints -->
+          <div class="bg-slate-50 rounded-xl p-5 border border-slate-100">
+            <h3 class="text-xs font-black text-slate-700 mb-4 flex items-center gap-2">
+              <i class="fa-solid fa-calendar-xmark text-slate-400"></i> 공기 제약 조건
+            </h3>
+            <div class="grid grid-cols-3 gap-4">
+              <div class="space-y-1.5">
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">연간 비작업</label>
+                <div class="relative">
+                  <input type="number" id="annualNonWorkingDays" value="65" onchange="updateGlobalState()"
+                    class="w-full bg-white border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold focus:ring-2 focus:ring-blue-500 outline-none text-center" />
+                  <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-bold">일</span>
                 </div>
-                <div class="relative overflow-x-auto pb-4">
-                    <div id="ganttContainer" class="min-w-[800px] space-y-4 relative">
-                        <!-- Gantt bars injected by JS -->
-                    </div>
+              </div>
+              <div class="space-y-1.5">
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">착공 준비</label>
+                <div class="relative">
+                  <input type="number" id="startAdminDays" value="30" onchange="updateGlobalState()"
+                    class="w-full bg-white border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold focus:ring-2 focus:ring-blue-500 outline-none text-center" />
+                  <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-bold">일</span>
                 </div>
+              </div>
+              <div class="space-y-1.5">
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">준공 인허가</label>
+                <div class="relative">
+                  <input type="number" id="endAdminDays" value="30" onchange="updateGlobalState()"
+                    class="w-full bg-white border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold focus:ring-2 focus:ring-blue-500 outline-none text-center" />
+                  <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-bold">일</span>
+                </div>
+              </div>
             </div>
+          </div>
 
-            <!-- U-Curve Analysis Chart -->
-            <div class="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-200">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
-                    <div>
-                        <h2 class="text-2xl font-black text-slate-900 tracking-tight">Time-Cost 상관 곡선 분석 (U-Curve)</h2>
-                        <p class="text-slate-500 text-sm mt-1 font-medium">최적 의사결정을 위한 4대 공기 지표(표준/계약/최소비용/현재) 비교</p>
-                    </div>
-                    <button onclick="toggleChartMode()" id="chartModeBtn" class="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-black transition-all bg-slate-900 text-white hover:bg-black shadow-lg shadow-slate-900/10">
-                        <i class="fa-solid fa-eye-low-beam"></i> <span>변동분만 보기</span>
-                    </button>
+          <!-- Special Works -->
+          <div class="bg-slate-50 rounded-xl p-5 border border-slate-100" id="specialWorksContainer">
+            <h3 class="text-xs font-black text-slate-700 mb-4 flex items-center gap-2">
+              <i class="fa-solid fa-truck-ramp-box text-slate-400"></i> 특수공정 가산 (직렬)
+            </h3>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-1.5">
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">기존 철거공사</label>
+                <div class="relative">
+                  <input type="number" id="demolitionDays" value="120" min="0" onchange="updateGlobalState()"
+                    class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-blue-500 outline-none text-center transition-all" />
+                  <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-bold">일</span>
                 </div>
-                
-                <!-- 4 Labels Info -->
-                <div class="flex flex-wrap gap-4 mb-6 text-[11px] font-bold bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                    <span class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-amber-500"></div> 표준공기 (법정)</span>
-                    <span class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-slate-500"></div> 계약공기 (기준)</span>
-                    <span class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-emerald-500"></div> 최소비용공기 (최적)</span>
-                    <span class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-blue-600"></div> 단축공기 (현재)</span>
+              </div>
+              <div class="space-y-1.5">
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">지정공사(파일)</label>
+                <div class="relative">
+                  <input type="number" id="pileWorkDays" value="30" min="0" onchange="updateGlobalState()"
+                    class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-blue-500 outline-none text-center transition-all" />
+                  <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-bold">일</span>
                 </div>
-
-                <div class="chart-container">
-                    <canvas id="costCurveChart"></canvas>
-                </div>
+              </div>
             </div>
+          </div>
         </div>
 
-        <!-- Section 4: Integrated Technical Report -->
-        <div id="report" class="bg-white p-10 md:p-16 rounded-[4rem] shadow-sm border border-slate-200 space-y-12">
-            <div class="border-b border-slate-100 pb-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                <div class="space-y-2">
-                    <div class="inline-flex items-center gap-2 bg-blue-50 text-blue-600 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-100">
-                        Technical Analysis Report
-                    </div>
-                    <h2 class="text-4xl font-black text-slate-900 tracking-tighter">건설공사 공기-원가 최적화 분석 보고서</h2>
-                    <p class="text-slate-400 font-medium">Time-Cost Trade-off Engineering Analysis based on CPM Network & Bromilow Model</p>
-                </div>
-                <div class="text-right">
-                    <p class="text-xs text-slate-400 font-bold">REPORT NO. CM-2024-001</p>
-                    <p class="text-sm font-black text-slate-900">발행일자: <span id="reportDate"></span></p>
-                </div>
+        <!-- 기존 건축 간이계수 패널(office에서는 숨김) -->
+        <div id="advancedBuildingOptionsContainer" class="bg-blue-50/50 border border-blue-100 rounded-xl p-5 hidden">
+          <h4 class="text-[11px] font-black text-blue-800 uppercase tracking-wider mb-4 flex items-center gap-1.5">
+            <i class="fa-solid fa-sliders"></i> 실무 공기 산정 계수 설정 (User-defined Factors)
+          </h4>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="space-y-1.5">
+              <label class="text-[10px] font-bold text-slate-500 italic">기초/준비 (일)</label>
+              <input type="number" id="baseSetupDays" value="60" min="0" onchange="updateGlobalState()"
+                class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold" />
             </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 text-[15px] leading-relaxed text-slate-600 report-section">
-                <!-- Left Column -->
-                <div class="space-y-10">
-                    <section>
-                        <h3 class="text-lg font-black text-slate-900 tracking-tight uppercase">1. 분석 개요 (Executive Summary)</h3>
-                        <p>본 보고서는 건설 프로젝트의 <strong>직접비(Direct Cost)</strong>와 <strong>간접비(Indirect Cost)</strong> 간의 역상관 관계를 공학적으로 분석하여, 전체 원가가 최소화되는 <strong>최소비용공기(Minimum Cost Duration)</strong>를 도출하는 데 목적이 있습니다. 계약공기 준수라는 관행적 목표에서 벗어나, 데이터 기반의 경제적 공사 수행 기간을 식별합니다.</p>
-                    </section>
-
-                    <section>
-                        <h3 class="text-lg font-black text-slate-900 tracking-tight uppercase">2. 표준공기 산정 및 분석 방법론</h3>
-                        <div class="bg-slate-50 p-8 rounded-3xl border border-slate-100 space-y-6">
-                            <div class="space-y-3">
-                                <h4 class="font-bold text-slate-800 text-sm flex items-center gap-2 italic">
-                                    <i class="fa-solid fa-square-root-variable text-blue-500"></i> Bromilow's Time-Cost Model
-                                </h4>
-                                <p class="text-xs text-slate-500">국토교통부 기준에 따라 공사비 규모를 비선형 통계 모형에 대입하여 표준공기를 도출합니다.</p>
-                                <div class="bg-white py-4 px-6 rounded-2xl border border-slate-200 text-center font-mono text-xl text-blue-600 font-black shadow-inner">
-                                    $ T = K \times C^{B} $
-                                </div>
-                                <ul class="text-[10px] text-slate-400 space-y-1 pl-2">
-                                    <li>- T: 순작업일수 / C: 직접 공사비 (백만원)</li>
-                                    <li>- K, B: 공사 유형별 통계 상수 (상단 시뮬레이터 선택값 적용)</li>
-                                </ul>
-                            </div>
-                            <div class="space-y-2">
-                                <h4 class="font-bold text-slate-800 text-sm flex items-center gap-2 italic">
-                                    <i class="fa-solid fa-diagram-project text-blue-500"></i> CPM Network & Float Analysis
-                                </h4>
-                                <p class="text-xs text-slate-500">12개 세부 공정의 선후 관계를 실시간 추적하여 <strong>주공정(Critical Path)</strong>을 식별합니다. 주공정 외 작업의 단축은 공사비만 낭비할 뿐 전체 공기를 줄이지 못하므로 알고리즘에서 배제합니다.</p>
-                            </div>
-                        </div>
-                    </section>
-                </div>
-
-                <!-- Right Column -->
-                <div class="space-y-10">
-                    <section>
-                        <h3 class="text-lg font-black text-slate-900 tracking-tight uppercase">3. 비용 구조 및 U-Curve 해석</h3>
-                        <div class="space-y-6">
-                            <div class="border-l-4 border-rose-500 pl-6 space-y-2 py-1 bg-white">
-                                <h4 class="font-black text-slate-900 uppercase tracking-tighter">직접비: 비용 경사 (Cost Slope)</h4>
-                                <p class="text-[13px] text-slate-500">공기를 1일 단축하기 위해 투입되는 할증 비용(야간 작업비, 장비 증설 등)입니다. 본 분석은 품질 및 안전 확보를 위해 공종별 <strong>최대 10%의 단축 한계</strong> 내에서 계산되었습니다.</p>
-                            </div>
-                            <div class="border-l-4 border-emerald-500 pl-6 space-y-2 py-1 bg-white">
-                                <h4 class="font-black text-slate-900 uppercase tracking-tighter">간접비: 일일 현장 유지비</h4>
-                                <p class="text-[13px] text-slate-500">현장 운영비, 관리자 인건비 등 현장이 유지되는 동안 매일 고정 발생하는 비용입니다. 위 시뮬레이터 설정에 따라 <strong id="reportDailyIndirect" class="text-emerald-600 bg-emerald-50 px-1 rounded">매일 --원</strong> 수준의 기회 비용 증감이 발생합니다.</p>
-                            </div>
-                        </div>
-                        <div class="bg-blue-600 p-8 rounded-[2.5rem] mt-8 text-white shadow-xl relative overflow-hidden group">
-                            <div class="absolute right-0 top-0 opacity-10 transform translate-x-1/4 -translate-y-1/4">
-                                <i class="fa-solid fa-chart-line text-9xl"></i>
-                            </div>
-                            <h4 class="font-black text-lg mb-2 flex items-center gap-2"><i class="fa-solid fa-lightbulb"></i> 의사결정 시사점</h4>
-                            <p class="text-xs text-blue-100 leading-relaxed font-medium">적정 공기(최소비용공기)를 넘어 지연될 경우, 간접비 누적으로 인해 우측 곡선이 상승합니다. 반대로 무리하게 단축할 경우 할증률 폭증으로 좌측 곡선이 상승하는 전형적인 U자형을 보입니다. <strong>녹색 포인트</strong>를 경영 목표 공기로 설정하는 것이 유리합니다.</p>
-                        </div>
-                    </section>
-                </div>
+            <div class="space-y-1.5">
+              <label class="text-[10px] font-bold text-slate-500 italic">지하 층당 (일)</label>
+              <input type="number" id="ugFloorDays" value="45" min="0" onchange="updateGlobalState()"
+                class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold" />
             </div>
-
-            <!-- Conclusion Grid -->
-            <div class="bg-slate-900 p-10 md:p-16 rounded-[4rem] text-white space-y-10 relative shadow-2xl">
-                <div class="flex items-center gap-4 border-b border-slate-800 pb-8">
-                    <div class="bg-blue-600 w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-lg"><i class="fa-solid fa-star"></i></div>
-                    <div>
-                        <h3 class="text-2xl font-black tracking-tight uppercase">4. 최적 단축 전략 제언 (Recommendation)</h3>
-                        <p class="text-slate-400 text-xs mt-1">Optimization Strategy for Executive Management</p>
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="bg-slate-800/40 p-6 rounded-3xl border border-slate-700 hover:bg-slate-800 transition-all group">
-                        <div class="flex items-center gap-3 mb-4">
-                            <i class="fa-solid fa-shield-halved text-blue-400"></i>
-                            <span class="font-black text-sm uppercase tracking-wider">CP Focused Strategy</span>
-                        </div>
-                        <p class="text-xs text-slate-400 leading-relaxed font-medium group-hover:text-slate-300">반드시 <strong>주공정(Critical Path)</strong>상의 공종부터 단축하십시오. 여유 공기가 있는 비주공정의 단축은 비용 낭비일 뿐 전체 일정 단축 효과가 전무합니다.</p>
-                    </div>
-                    <div class="bg-slate-800/40 p-6 rounded-3xl border border-slate-700 hover:bg-slate-800 transition-all group text-emerald-400">
-                        <div class="flex items-center gap-3 mb-4">
-                            <i class="fa-solid fa-leaf text-emerald-400"></i>
-                            <span class="font-black text-sm uppercase tracking-wider text-white">Low Cost Crashing</span>
-                        </div>
-                        <p class="text-xs text-slate-400 leading-relaxed font-medium group-hover:text-slate-300 italic">비용 경사가 낮은 <strong>마감공사 및 수장공사</strong>를 우선 단축 자원으로 활용하십시오. 이는 초기 단축 경제성을 확보하는 핵심 동력입니다.</p>
-                    </div>
-                    <div class="bg-slate-800/40 p-6 rounded-3xl border border-slate-700 hover:bg-slate-800 transition-all group text-rose-400 col-span-1 md:col-span-2">
-                        <div class="flex items-center gap-3 mb-4">
-                            <i class="fa-solid fa-triangle-exclamation text-rose-400"></i>
-                            <span class="font-black text-sm uppercase tracking-wider text-white">High 할증 위험 모니터링</span>
-                        </div>
-                        <p class="text-xs text-slate-400 leading-relaxed font-medium group-hover:text-slate-300"><strong>지하 및 지상 골조공사</strong>는 단축 시 발생하는 비용 경사가 매우 가파릅니다. 해당 구간의 무리한 단축은 총 공사비를 폭증시킬 뿐만 아니라 근로자 안전 리스크를 증대시키므로 MC Point 이상의 단축은 지양해야 합니다.</p>
-                    </div>
-                </div>
+            <div class="space-y-1.5">
+              <label class="text-[10px] font-bold text-slate-500 italic">지상 층당 (일)</label>
+              <input type="number" id="agFloorDays" value="25" min="0" onchange="updateGlobalState()"
+                class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold" />
             </div>
-
-            <!-- Report Footer -->
-            <div class="pt-8 flex flex-col items-center gap-4">
-                <div class="flex gap-2">
-                    <div class="w-2 h-2 bg-slate-200 rounded-full"></div>
-                    <div class="w-2 h-2 bg-slate-200 rounded-full"></div>
-                    <div class="w-2 h-2 bg-slate-200 rounded-full border border-slate-300"></div>
-                </div>
-                <p class="text-[10px] text-slate-300 font-black uppercase tracking-[0.4em] text-center">Intelligent Construction Simulation Engine</p>
-                <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="text-blue-500 font-black text-[10px] uppercase hover:underline">
-                    <i class="fa-solid fa-arrow-up"></i> 위로 가기
-                </button>
+            <div class="space-y-1.5">
+              <label class="text-[10px] font-bold text-slate-500 italic">마감 기본 (일)</label>
+              <input type="number" id="finishingBaseDays" value="180" min="0" onchange="updateGlobalState()"
+                class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold" />
             </div>
+          </div>
         </div>
 
-    </main>
+        <!-- 업무시설 WBS 옵션 -->
+        <div class="bg-emerald-50/50 border border-emerald-100 rounded-xl p-5" id="officeWbsOptions">
+          <h4 class="text-[11px] font-black text-emerald-800 uppercase tracking-wider mb-4 flex items-center gap-1.5">
+            <i class="fa-solid fa-building-circle-check"></i> 업무시설 WBS(층 반복) 설정
+          </h4>
 
-    <footer class="bg-slate-900 text-slate-500 py-12 px-4 text-center border-t border-slate-800">
-        <div class="container mx-auto max-w-6xl space-y-4">
-            <p class="text-xs font-bold uppercase tracking-widest text-slate-400 italic">"Engineering Excellence in Construction Management"</p>
-            <p class="text-[10px] leading-relaxed max-w-2xl mx-auto opacity-50">본 시뮬레이션 결과는 입력된 통계적 상수를 기반으로 산출된 예측치이며, 실제 현장의 투입비 및 여건에 따라 오차가 발생할 수 있습니다.</p>
-            <div class="pt-4 text-[11px] font-black text-slate-600">&copy; 2024 CONSTRUCTION ANALYTICS LAB. ALL RIGHTS RESERVED.</div>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="space-y-1.5">
+              <label class="text-[10px] font-bold text-slate-600 italic">지하 골조 (작업일/층)</label>
+              <input type="number" id="officeUgFrameWorkDays" value="31" min="1" onchange="updateGlobalState()"
+                class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold" />
+            </div>
+            <div class="space-y-1.5">
+              <label class="text-[10px] font-bold text-slate-600 italic">지상 골조 (작업일/층)</label>
+              <input type="number" id="officeAgFrameWorkDays" value="12" min="1" onchange="updateGlobalState()"
+                class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold" />
+            </div>
+            <div class="space-y-1.5">
+              <label class="text-[10px] font-bold text-slate-600 italic">외장/커튼월 (작업일/층)</label>
+              <input type="number" id="officeEnvelopeWorkDays" value="8" min="1" onchange="updateGlobalState()"
+                class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold" />
+            </div>
+            <div class="space-y-1.5">
+              <label class="text-[10px] font-bold text-slate-600 italic">경량벽체/조적 (작업일/층)</label>
+              <input type="number" id="officePartitionWorkDays" value="6" min="1" onchange="updateGlobalState()"
+                class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold" />
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="text-[10px] font-bold text-slate-600 italic">MEP 러프인 (작업일/층)</label>
+              <input type="number" id="officeMepRoughWorkDays" value="8" min="1" onchange="updateGlobalState()"
+                class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold" />
+            </div>
+            <div class="space-y-1.5">
+              <label class="text-[10px] font-bold text-slate-600 italic">내부마감 (작업일/층)</label>
+              <input type="number" id="officeInteriorWorkDays" value="10" min="1" onchange="updateGlobalState()"
+                class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold" />
+            </div>
+            <div class="space-y-1.5">
+              <label class="text-[10px] font-bold text-slate-600 italic">MEP 마감/기기 (작업일/층)</label>
+              <input type="number" id="officeMepFinishWorkDays" value="4" min="1" onchange="updateGlobalState()"
+                class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold" />
+            </div>
+            <div class="space-y-1.5">
+              <label class="text-[10px] font-bold text-slate-600 italic">TAB·시운전 (작업일, 전체)</label>
+              <input type="number" id="officeCommissionWorkDays" value="45" min="1" onchange="updateGlobalState()"
+                class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+            <div class="space-y-1.5">
+              <label class="text-[10px] font-bold text-slate-600 italic">MEP 착수(벽체 시작 후, 일)</label>
+              <input type="number" id="officeMepStartLagDays" value="2" min="0" onchange="updateGlobalState()"
+                class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold" />
+            </div>
+            <div class="space-y-1.5">
+              <label class="text-[10px] font-bold text-slate-600 italic">부대토목/조경(착수, F1 후 일)</label>
+              <input type="number" id="officeSiteStartLagDays" value="15" min="0" onchange="updateGlobalState()"
+                class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold" />
+            </div>
+
+            <div class="space-y-1.5 col-span-2">
+              <label class="text-[10px] font-bold text-slate-600 italic">간접비(일일) 직접입력 (백만/일, 0이면 자동)</label>
+              <input type="number" id="indirectPerDayOverride" value="0" min="0" step="0.1" onchange="updateGlobalState()"
+                class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold" />
+            </div>
+          </div>
         </div>
-    </footer>
+      </div>
 
-    <!-- JavaScript Simulation Engine -->
-    <script>
-        // --- Custom Chart Plugin for Vertical Lines ---
-        const verticalLinePlugin = {
-            id: 'verticalLines',
-            afterDraw: (chart, args, options) => {
-                if (!options || !options.lines) return;
-                const lines = options.lines;
-                const ctx = chart.ctx;
-                const yAxis = chart.scales.y;
-                const meta = chart.getDatasetMeta(0); // 첫 번째 데이터셋의 좌표값 활용
-                
-                if(!meta || !meta.data.length) return;
+      <div class="mt-6 flex flex-col md:flex-row gap-4 items-center justify-between border-t border-slate-100 pt-6">
+        <div class="flex-1 flex flex-wrap gap-4 text-xs font-medium text-slate-500">
+          <div class="bg-blue-50 px-3 py-2 rounded-lg text-blue-700">건축(기계) 계약금액: <span class="font-bold" id="headerContractAmount">--</span></div>
+          <div class="bg-slate-100 px-3 py-2 rounded-lg">일일 유지비: <span class="text-slate-900 font-bold" id="headerIndirectPerDay">--</span>/일</div>
 
-                lines.forEach((line, index) => {
-                    // Find the closest index for the duration value
-                    let closestIndex = -1;
-                    let minDiff = Infinity;
-                    chart.data.labels.forEach((val, idx) => {
-                        const diff = Math.abs(val - line.x);
-                        if (diff < minDiff) {
-                            minDiff = diff;
-                            closestIndex = idx;
-                        }
-                    });
-                    
-                    if (closestIndex === -1) return;
-                    
-                    // 정확한 X 좌표 추출
-                    const x = meta.data[closestIndex].x;
+          <div class="bg-amber-50 px-3 py-2 rounded-lg text-amber-800 border border-amber-100">
+            WBS 기준 공정계획: <span class="font-black" id="standardDurationValue">--</span>일
+          </div>
 
-                    // 라벨이 겹치지 않도록 높낮이 지그재그 배치
-                    const yOffset = yAxis.top + (index % 2 === 0 ? 0 : 30);
+          <div class="bg-slate-100 px-3 py-2 rounded-lg">
+            시설물 공식 검증(기타): <span class="font-black" id="facilityCheckOther">--</span>일 /
+            (면적·지하): <span class="font-black" id="facilityCheckCommon">--</span>일
+          </div>
+        </div>
 
-                    ctx.save();
-                    
-                    // 세로선 그리기
-                    ctx.beginPath();
-                    ctx.moveTo(x, yOffset + 20);
-                    ctx.lineTo(x, yAxis.bottom);
-                    ctx.lineWidth = 2;
-                    ctx.strokeStyle = line.color || '#000';
-                    if (line.dash) ctx.setLineDash(line.dash);
-                    ctx.stroke();
+        <button onclick="updateGlobalState()"
+          class="w-full md:w-auto px-8 py-3 bg-slate-900 text-white rounded-2xl text-sm font-black hover:bg-black transition-all shadow-md active:scale-95 flex items-center justify-center gap-2">
+          <i class="fa-solid fa-arrows-rotate"></i> 설정 적용 및 데이터 재생성
+        </button>
+      </div>
+    </section>
 
-                    // 바닥 점 그리기
-                    ctx.beginPath();
-                    ctx.arc(x, yAxis.bottom, 4, 0, 2 * Math.PI);
-                    ctx.fillStyle = line.color;
-                    ctx.fill();
+    <!-- Section 2: Dashboard -->
+    <section class="bg-white p-6 md:p-8 rounded-[3rem] shadow-sm border border-slate-200 overflow-hidden">
+      <div class="flex items-center gap-3 mb-6">
+        <i class="fa-solid fa-chart-pie text-emerald-500 text-xl"></i>
+        <h2 class="text-xl font-bold text-slate-900 tracking-tight">종합 분석 대시보드 (Summary & Optimizer)</h2>
+      </div>
 
-                    // 텍스트 배경 그리기
-                    ctx.font = 'bold 11px sans-serif';
-                    const textWidth = ctx.measureText(line.text).width;
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-                    ctx.fillRect(x - textWidth/2 - 6, yOffset, textWidth + 12, 18);
-                    
-                    // 텍스트 그리기
-                    ctx.fillStyle = line.color;
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'top';
-                    ctx.fillText(line.text, x, yOffset + 2);
-                    
-                    ctx.restore();
-                });
-            }
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Table -->
+        <div class="lg:col-span-2 border border-slate-200 rounded-2xl overflow-x-auto self-start shadow-sm">
+          <table class="w-full text-sm text-left min-w-[600px]">
+            <thead class="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
+              <tr>
+                <th class="py-4 px-4">분석 시나리오</th>
+                <th class="py-4 px-3 text-center border-l border-slate-200">공사기간</th>
+                <th class="py-4 px-3 text-center">기간 증감</th>
+                <th class="py-4 px-3 text-right border-l border-slate-200">직접비</th>
+                <th class="py-4 px-3 text-right">간접비</th>
+                <th class="py-4 px-3 text-right font-black text-slate-700 bg-slate-100/50">총 공사비</th>
+                <th class="py-4 px-3 text-right border-l border-slate-200">비용 증감</th>
+              </tr>
+            </thead>
+            <tbody id="comparisonTableBody"></tbody>
+          </table>
+        </div>
+
+        <!-- Target control -->
+        <div class="flex flex-col gap-4">
+          <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl text-white relative overflow-hidden flex-1 flex flex-col">
+            <div class="absolute right-0 bottom-0 w-40 h-40 bg-blue-600/20 rounded-full blur-3xl"></div>
+            <div class="relative z-10 flex-1 flex flex-col justify-center">
+              <div>
+                <h3 class="text-sm font-black text-blue-400 uppercase tracking-tighter mb-2 flex items-center gap-1.5">
+                  <i class="fa-solid fa-clock"></i> 공사기간 조정
+                </h3>
+                <p class="text-xs text-slate-400 mb-6 flex justify-between items-center">
+                  <span>조정 일수 입력 (+/-)</span>
+                  <span class="bg-slate-800 px-2 py-1 rounded text-slate-300 text-[10px]">최대 <span id="maxCrashPossibleDisplay" class="font-bold text-white">--</span>일 단축 가능</span>
+                </p>
+
+                <div class="flex flex-col items-center justify-center mb-6">
+                  <div class="flex items-center justify-center gap-3">
+                    <button onclick="adjustTargetDays(-1)" class="w-12 h-12 bg-slate-800 hover:bg-slate-700 rounded-xl flex items-center justify-center font-bold text-2xl transition-colors active:scale-95">-</button>
+                    <input type="number" id="targetDaysInput" value="-60"
+                      oninput="updateTargetUI()"
+                      onblur="validateTargetDays()"
+                      onkeydown="if(event.key === 'Enter') { validateTargetDays(); applyTargetDuration(); }"
+                      class="w-24 bg-slate-800 border border-slate-700 rounded-xl px-2 py-2 text-2xl font-black text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                    <button onclick="adjustTargetDays(1)" class="w-12 h-12 bg-slate-800 hover:bg-slate-700 rounded-xl flex items-center justify-center font-bold text-2xl transition-colors active:scale-95">+</button>
+                  </div>
+                  <div id="targetDaysDiff" class="text-[12px] font-bold mt-3 h-6 flex items-center justify-center text-slate-400 tracking-wide text-center">--</div>
+                </div>
+
+                <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 mb-6 flex justify-between items-center">
+                  <span class="text-xs font-bold text-slate-400">예측 비용 증감</span>
+                  <div id="targetTotalDiff" class="text-xl font-black mt-0.5">--</div>
+                </div>
+              </div>
+
+              <button onclick="validateTargetDays(); applyTargetDuration();"
+                class="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-black transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 mt-auto">
+                공정표 반영
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Section 3: Task Control -->
+    <section class="bg-white p-6 md:p-8 rounded-[3rem] shadow-sm border border-slate-200">
+      <div class="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+        <i class="fa-solid fa-sliders text-blue-600 text-xl"></i>
+        <div>
+          <h2 class="text-lg font-bold text-slate-900 tracking-tight">공정별 세부 제어 (Task Control)</h2>
+          <div class="flex gap-2 text-[10px] font-black uppercase mt-1.5">
+            <span class="bg-rose-100 text-rose-600 px-2 py-0.5 rounded">Critical Path (주공정)</span>
+            <span class="bg-slate-200 text-slate-600 px-2 py-0.5 rounded italic">Fixed / No Cost</span>
+          </div>
+        </div>
+      </div>
+      <div id="taskSlidersContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-6"></div>
+    </section>
+
+    <!-- Section 4: Visual -->
+    <div class="grid grid-cols-1 gap-8">
+      <!-- Gantt -->
+      <div class="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-200">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
+          <div>
+            <h2 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+              <i class="fa-solid fa-align-left text-blue-600"></i> 단축 전/후 공정 비교 (Gantt)
+            </h2>
+            <p class="text-slate-500 text-xs mt-1 font-medium italic">Normal Plan (Gray) vs Current Simulation (Colored)</p>
+          </div>
+          <div class="flex gap-4 text-[11px] font-black text-slate-500 uppercase tracking-widest bg-slate-50 px-5 py-2 rounded-full border border-slate-100">
+            <span class="flex items-center gap-2"><div class="w-3 h-3 bg-slate-300 rounded-sm"></div> 기준계획</span>
+            <span class="flex items-center gap-2"><div class="w-3 h-3 bg-rose-400 rounded-sm"></div> 주공정(CP)</span>
+            <span class="flex items-center gap-2"><div class="w-3 h-3 bg-blue-400 rounded-sm"></div> 일반공정</span>
+          </div>
+        </div>
+
+        <div class="relative overflow-x-auto pb-4 pt-8 px-2">
+          <div id="ganttWrapper" class="min-w-[800px] relative cursor-crosshair"
+            onmousemove="handleGanttMouseMove(event)" onmouseleave="handleGanttMouseLeave()">
+            <div id="ganttCrosshair" class="absolute top-0 bottom-6 w-[2px] bg-blue-500/50 z-20 hidden pointer-events-none transition-transform duration-75" style="left: 0;">
+              <div id="ganttCrosshairLabel"
+                class="absolute bg-blue-600 text-white text-[11px] font-black px-3 py-1 rounded-lg whitespace-nowrap shadow-lg transition-all duration-75"
+                style="transform: translate(12px, -50%);"></div>
+              <div class="absolute bottom-0 w-2.5 h-2.5 bg-blue-600 rounded-full -translate-x-[4px] translate-y-1/2 shadow-sm"></div>
+            </div>
+            <div id="ganttContainer" class="space-y-4 relative z-10"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- U-Curve -->
+      <div class="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-200">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+          <div>
+            <h2 class="text-2xl font-black text-slate-900 tracking-tight">Time-Cost 상관 곡선 (U-Curve)</h2>
+            <p class="text-slate-500 text-sm mt-1 font-medium">업무시설 WBS + 동적 CPM + 복수 CP 단축비용 반영</p>
+          </div>
+          <button onclick="toggleChartMode()" id="chartModeBtn"
+            class="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-black transition-all bg-slate-900 text-white hover:bg-black shadow-lg shadow-slate-900/10">
+            <i class="fa-solid fa-eye-low-beam"></i> <span>변동분만 보기</span>
+          </button>
+        </div>
+
+        <div class="flex flex-wrap gap-4 mb-6 text-xs font-bold bg-slate-50 p-4 rounded-2xl border border-slate-100">
+          <span class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-amber-500"></div> 표준공기(공식검증)</span>
+          <span class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-slate-500"></div> 계약공기</span>
+          <span class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-emerald-500"></div> 최소비용(MC)</span>
+          <span class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-blue-600"></div> 현재(단축가정)</span>
+        </div>
+
+        <div class="chart-container">
+          <canvas id="costCurveChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Report -->
+    <div id="report" class="bg-white p-10 md:p-16 rounded-[4rem] shadow-sm border border-slate-200 space-y-12">
+      <div class="border-b border-slate-100 pb-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div class="space-y-2">
+          <div class="inline-flex items-center gap-2 bg-blue-50 text-blue-600 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest border border-blue-100">
+            Technical Analysis Report
+          </div>
+          <h2 class="text-4xl font-black text-slate-900 tracking-tighter">건설공사 공기-원가 최적화 분석 보고서</h2>
+          <p class="text-slate-400 font-medium text-sm">Office (Other Building) WBS + Dynamic CPM + Multi-CP Crashing</p>
+        </div>
+        <div class="text-right">
+          <p class="text-xs text-slate-400 font-bold">REPORT NO. CM-2024-001</p>
+          <p class="text-sm font-black text-slate-900">발행일자: <span id="reportDate"></span></p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-6 text-sm text-slate-400 font-bold mb-8">
+        <span class="flex items-center gap-1.5"><i class="fa-solid fa-calendar"></i> 분석일자: <span id="reportDateBadge"></span></span>
+        <span class="flex items-center gap-1.5"><i class="fa-solid fa-box"></i> 계약금액(백만): <span id="reportProjectScale">--</span></span>
+        <span class="flex items-center gap-1.5"><i class="fa-solid fa-receipt"></i> 일일 유지비: <span id="reportIndirectPerDay">--</span></span>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 text-[15px] leading-relaxed text-slate-600 report-section">
+        <div class="space-y-10">
+          <section>
+            <h3 class="text-lg font-black text-slate-900 tracking-tight uppercase">1. 분석 개요 (Executive Summary)</h3>
+            <p>
+              본 모델은 업무시설(기타 건축물)의 공정 특성을 반영하여, <strong>층 반복 WBS(골조→외장→벽체→MEP→내부마감→시운전→준공)</strong>를 구성하고,
+              SS/FS/lag 관계를 포함한 네트워크를 기반으로 <strong>동적 CPM</strong>을 수행합니다.
+              단축(crashing) 과정에서는 <strong>임계경로(CP)가 실시간으로 전이/중첩</strong>될 수 있으므로, <strong>복수 임계경로를 동시에 1일 단축시키는 최소비용 조합</strong>을 매 스텝 산정하여 총 공사비에 반영합니다.
+            </p>
+          </section>
+
+          <section>
+            <h3 class="text-lg font-black text-slate-900 tracking-tight uppercase">2. 표준공기 및 공정계획 산정 방법론</h3>
+            <div class="bg-slate-50 p-8 rounded-3xl border border-slate-100 space-y-6">
+              <div class="space-y-3">
+                <h4 class="font-bold text-slate-800 text-sm flex items-center gap-2 italic">
+                  <i class="fa-solid fa-square-root-variable text-blue-500"></i> Methodology
+                </h4>
+                <p class="text-xs text-slate-600" id="methodologyDesc">
+                  업무시설(기타 건축물)의 규모(층수/연면적/공사비)와 공정 간 선후관계를 근거로 WBS를 생성하고, 비작업일수(연간)를 캘린더 보정계수로 반영합니다.
+                </p>
+                <div class="bg-white py-4 px-6 rounded-2xl border border-slate-200 text-center font-mono text-[14px] text-blue-600 font-black shadow-inner" id="methodologyFormula">
+                  WBS 기반 공정계획 + (시설물 공식 공기 검증) + CPM(SS/FS/lag) + Multi-CP Crashing
+                </div>
+                <ul class="text-[11px] text-slate-500 space-y-1.5 pl-2 mt-3" id="methodologyDetails"></ul>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="space-y-10">
+          <section>
+            <h3 class="text-lg font-black text-slate-900 tracking-tight uppercase">3. 비용 구조 및 동적 CP 반영</h3>
+            <div class="space-y-6">
+              <div class="border-l-4 border-rose-500 pl-6 space-y-2 py-1 bg-white">
+                <h4 class="font-black text-slate-900 uppercase tracking-tighter text-sm">동적 다중 CP + 최소비용 단축</h4>
+                <p class="text-sm text-slate-500">
+                  단축 시점마다 CP 서브그래프를 구성하고, CP가 복수일 경우에도 모든 CP를 동시에 단축시키는 최소비용 조합을 선택하여 직접비 증가를 산출합니다.
+                </p>
+              </div>
+              <div class="border-l-4 border-emerald-500 pl-6 space-y-2 py-1 bg-white">
+                <h4 class="font-black text-slate-900 uppercase tracking-tighter text-sm">간접비: 일일 현장 유지비</h4>
+                <p class="text-sm text-slate-500">
+                  공기 변화에 따라 <strong id="reportDailyIndirect" class="text-emerald-600 bg-emerald-50 px-1 rounded">매일 --</strong> 수준의 현장 유지비가 누계 반영됩니다.
+                </p>
+              </div>
+
+              <div class="border-l-4 border-amber-500 pl-6 space-y-2 py-1 bg-white">
+                <h4 class="font-black text-slate-900 uppercase tracking-tighter text-sm">시설물 공식 검증(참조)</h4>
+                <p class="text-sm text-slate-500">
+                  동일 입력값으로 시설물 공식 기반 공기(검증치)를 산정하여, WBS 기반 공정계획 공기와의 편차를 함께 제시합니다.
+                </p>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <div class="pt-8 flex flex-col items-center gap-4">
+        <div class="flex gap-2">
+          <div class="w-2 h-2 bg-slate-200 rounded-full"></div>
+          <div class="w-2 h-2 bg-slate-200 rounded-full"></div>
+          <div class="w-2 h-2 bg-slate-200 rounded-full border border-slate-300"></div>
+        </div>
+        <p class="text-[11px] text-slate-300 font-black uppercase tracking-[0.4em] text-center">Intelligent Construction Simulation Engine</p>
+        <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="text-blue-500 font-black text-xs uppercase hover:underline">
+          <i class="fa-solid fa-arrow-up"></i> 위로 가기
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <footer class="bg-slate-900 text-slate-500 py-12 px-4 text-center border-t border-slate-800">
+    <div class="container mx-auto max-w-6xl space-y-4">
+      <p class="text-xs font-bold uppercase tracking-widest text-slate-400 italic">"Engineering Excellence in Construction Management"</p>
+      <div class="pt-4 text-xs font-black text-slate-600">&copy; 2024 CONSTRUCTION ANALYTICS LAB. ALL RIGHTS RESERVED.</div>
+    </div>
+  </footer>
+
+  <script>
+    // ===== Helpers =====
+    const setVal = (id, val, isHtml = false) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (isHtml) el.innerHTML = val;
+      else el.innerText = val;
+    };
+
+    function formatCurrency(v) {
+      return new Intl.NumberFormat('ko-KR').format(Math.round(v));
+    }
+
+    // ===== Chart Plugin: Vertical Lines =====
+    const verticalLinePlugin = {
+      id: 'verticalLines',
+      afterDraw: (chart, args, options) => {
+        if (!options || !options.lines || !Array.isArray(options.lines)) return;
+
+        const ctx = chart.ctx;
+        const xAxis = chart.scales.x;
+        const yAxis = chart.scales.y;
+
+        options.lines.forEach((line, index) => {
+          const x = xAxis.getPixelForValue(line.x);
+          if (x < xAxis.left - 5 || x > xAxis.right + 5) return;
+
+          const yOffset = yAxis.top + (index * 22);
+          const color = line.color || '#000';
+
+          ctx.save();
+
+          ctx.beginPath();
+          ctx.moveTo(x, yOffset + 18);
+          ctx.lineTo(x, yAxis.bottom);
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = color;
+          if (line.dash) ctx.setLineDash(line.dash);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          ctx.beginPath();
+          ctx.arc(x, yAxis.bottom, 4, 0, 2 * Math.PI);
+          ctx.fillStyle = color;
+          ctx.fill();
+
+          const text = line.text ?? '';
+          ctx.font = 'bold 12px sans-serif';
+          const textWidth = ctx.measureText(text).width;
+
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+          ctx.fillRect(x - textWidth / 2 - 6, yOffset - 2, textWidth + 12, 18);
+
+          ctx.fillStyle = color;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'top';
+          ctx.fillText(text, x, yOffset);
+
+          ctx.restore();
+        });
+      }
+    };
+    Chart.register(verticalLinePlugin);
+
+    // ===== Global State =====
+    let state = {
+      contractAmount: 49050,
+      baseDirectCost: 35802.9,
+
+      startAdminDays: 30,
+      endAdminDays: 30,
+      annualNonWorkingDays: 65,
+
+      targetNormalDuration: 792,
+      floorArea: 17545,
+      ugFloors: 1,
+      agFloors: 5,
+
+      demolitionDays: 120,
+      pileWorkDays: 30,
+
+      // building(간이) fallback
+      baseSetupDays: 60,
+      ugFloorDays: 45,
+      agFloorDays: 25,
+      finishingBaseDays: 180,
+
+      projectType: 'office',
+
+      // office wbs options
+      officeWbs: {
+        ugFrameWorkDays: 31,
+        agFrameWorkDays: 12,
+        envelopeWorkDays: 8,
+        partitionWorkDays: 6,
+        mepRoughWorkDays: 8,
+        interiorWorkDays: 10,
+        mepFinishWorkDays: 4,
+        commissionWorkDays: 45,
+        mepStartLagDays: 2,
+        siteStartLagDays: 15
+      },
+
+      tasks: [],
+      normalCPM: null,
+      currentCPM: null,
+
+      // 표준공기(공식 검증치) = commonForm 권장
+      standardDuration: 0,
+      // WBS 기준 공정계획(기준선)
+      wbsBaseDuration: 0,
+
+      facilityCheck: null,
+
+      simulationPoints: [],
+      optimalPoint: null,
+
+      chartMode: 'delta',
+      constants: { K: 25, B: 0.32 }
+    };
+
+    let costChart = null;
+
+    // ===== Facility Checks (Other Building) =====
+    function computeFacilityChecks() {
+      const C = Math.max(0.0001, state.contractAmount / 100);   // 백만 → 억원
+      const G = Math.max(0, state.agFloors + 1);                // 옥탑 포함
+      const B = Math.max(0, state.ugFloors);
+      const A = Math.max(0.0001, state.floorArea / 100);        // ㎡ → 100㎡ 단위
+      const D = Math.max(0, state.startAdminDays);
+      const E = Math.max(0, state.endAdminDays);
+
+      const yOther = (-21.674 + 7.953 * G + 116.835 * Math.log(C)) + D + E;
+      const yCommon = (-68.550 + 18.192 * B + 12.079 * G - 5.25 * Math.log(A) + 167.632 * Math.log(C)) + D + E;
+
+      return {
+        otherBuilding: Math.round(yOther),
+        commonForm: Math.round(yCommon),
+        inputs: { C, G, B, A, D, E }
+      };
+    }
+
+    // ===== Cost Slope =====
+    function getCostSlope(task) {
+      if (!task) return 0;
+      if (task.normalDur === task.crashDur) return 0;
+      if (!isFinite(task.normalCost) || !isFinite(task.crashCost)) return 0;
+
+      const dDen = (task.normalDur - task.crashDur);
+      if (dDen <= 0) return 0;
+
+      const slope = (task.crashCost - task.normalCost) / dDen;
+      return isFinite(slope) && slope > 0 ? slope : 0;
+    }
+
+    // ===== Office WBS Builder =====
+    function buildOfficeWBS() {
+      const tasks = [];
+
+      const nwRatio = (state.annualNonWorkingDays || 0) / 365;
+      const nwFactor = 1 / Math.max(0.10, (1 - nwRatio));
+      const cal = (workDays) => Math.max(1, Math.round(Math.max(0, workDays) * nwFactor));
+
+      const effectiveAG = Math.max(1, state.agFloors + 1);
+      const ugFloors = Math.max(0, state.ugFloors);
+
+      const opt = state.officeWbs || {};
+      const ugFrame = cal(opt.ugFrameWorkDays ?? 31);
+      const agFrame = cal(opt.agFrameWorkDays ?? 12);
+      const envelope = cal(opt.envelopeWorkDays ?? 8);
+      const partition = cal(opt.partitionWorkDays ?? 6);
+      const mepRough = cal(opt.mepRoughWorkDays ?? 8);
+      const interior = cal(opt.interiorWorkDays ?? 10);
+      const mepFinish = cal(opt.mepFinishWorkDays ?? 4);
+      const commissioning = cal(opt.commissionWorkDays ?? 45);
+
+      const mepStartLag = Math.max(0, opt.mepStartLagDays ?? 2);
+      const siteStartLag = Math.max(0, opt.siteStartLagDays ?? 15);
+
+      // 비용 배분 기본(업무시설 참고용). 실무 적용 시 엑셀 업로드/직접 입력으로 확장 권장.
+      const ratios = {
+        demolition: 0.02,
+        earthwork: 0.06,
+        pile: 0.05,
+        basementFrame: 0.10,
+        superFrame: 0.20,
+        envelope: 0.18,
+        partition: 0.08,
+        interior: 0.10,
+        mep: 0.18,
+        site: 0.03
+      };
+      const sumRatio = Object.values(ratios).reduce((a, b) => a + b, 0);
+      const norm = sumRatio > 1 ? (1 / sumRatio) : 1;
+
+      const total = state.baseDirectCost;
+      const cost = {};
+      Object.keys(ratios).forEach(k => cost[k] = total * ratios[k] * norm);
+
+      const makeTask = (id, name, normalDur, crashFactor, normalCost, crashMult, deps = [], isNoCost = false) => {
+        const nDur = Math.max(1, Math.round(normalDur));
+        const cDur = (crashFactor >= 1.0) ? nDur : Math.max(1, Math.round(nDur * crashFactor));
+        const nCost = isNoCost ? 0 : Math.max(0, normalCost);
+        const cCost = isNoCost ? 0 : Math.max(nCost, nCost * (crashMult ?? 1.0));
+        tasks.push({
+          id, name,
+          deps: deps.map(d => ({ pred: d.pred, type: d.type, lag: Math.max(0, d.lag || 0) })),
+          normalDur: nDur,
+          currentDur: nDur,
+          crashDur: cDur,
+          normalCost: nCost,
+          crashCost: cCost
+        });
+      };
+
+      let id = 1;
+
+      // 착공 준비(달력일, 고정)
+      const idStart = id++;
+      makeTask(idStart, '착공 및 준비기간', Math.max(1, state.startAdminDays), 1.0, 0, 1.0, []);
+
+      // 철거(옵션)
+      let idDemo = null;
+      if ((state.demolitionDays || 0) > 0) {
+        idDemo = id++;
+        makeTask(idDemo, '해체·철거공사', Math.max(1, state.demolitionDays), 1.0, cost.demolition, 1.10, [
+          { pred: idStart, type: 'FS', lag: 0 }
+        ]);
+      }
+
+      // 토공/기초
+      const idEarth = id++;
+      makeTask(idEarth, '가설·토공·흙막이·기초', cal(12), 0.90, cost.earthwork, 1.20, [
+        { pred: (idDemo ?? idStart), type: 'FS', lag: 0 }
+      ]);
+
+      // 파일(옵션)
+      let idPile = null;
+      if ((state.pileWorkDays || 0) > 0) {
+        idPile = id++;
+        makeTask(idPile, '지정(파일)·지반개량', Math.max(1, state.pileWorkDays), 1.0, cost.pile, 1.10, [
+          { pred: idEarth, type: 'FS', lag: 0 }
+        ]);
+      }
+
+      // 지하 골조
+      let idBasement = null;
+      if (ugFloors > 0) {
+        idBasement = id++;
+        makeTask(idBasement, `지하 골조공사(B${ugFloors})`, ugFrame * ugFloors, 0.90, cost.basementFrame, 1.60, [
+          { pred: (idPile ?? idEarth), type: 'FS', lag: 0 }
+        ]);
+      }
+
+      // 지상층 반복
+      const frameCostPerFloor = cost.superFrame / effectiveAG;
+      const envCostPerFloor = cost.envelope / effectiveAG;
+      const partCostPerFloor = cost.partition / effectiveAG;
+      const interiorCostPerFloor = cost.interior / effectiveAG;
+      const mepCostPerFloor = cost.mep / effectiveAG;
+
+      const frameIds = [];
+      const mepFinishIds = [];
+      const elecFireIds = [];
+
+      for (let f = 1; f <= effectiveAG; f++) {
+        const predFrame = (f === 1) ? (idBasement ?? (idPile ?? idEarth)) : frameIds[f - 2];
+
+        const idFrame = id++;
+        makeTask(idFrame, `지상 골조 F${f}`, agFrame, 0.90, frameCostPerFloor, 2.00, [
+          { pred: predFrame, type: 'FS', lag: 0 }
+        ]);
+        frameIds.push(idFrame);
+
+        const idEnv = id++;
+        makeTask(idEnv, `외장/커튼월 F${f}`, envelope, 0.85, envCostPerFloor, 1.25, [
+          { pred: idFrame, type: 'FS', lag: 0 }
+        ]);
+
+        const idPart = id++;
+        makeTask(idPart, `경량벽체/조적 F${f}`, partition, 0.85, partCostPerFloor, 1.15, [
+          { pred: idFrame, type: 'FS', lag: 0 }
+        ]);
+
+        const idMepR = id++;
+        makeTask(idMepR, `MEP 러프인 F${f}`, mepRough, 0.85, mepCostPerFloor * 0.55, 1.30, [
+          { pred: idPart, type: 'SS', lag: mepStartLag }
+        ]);
+
+        const idInterior = id++;
+        makeTask(idInterior, `내부마감 F${f}`, interior, 0.85, interiorCostPerFloor, 1.10, [
+          { pred: idPart, type: 'FS', lag: 0 },
+          { pred: idMepR, type: 'FS', lag: 0 },
+          { pred: idEnv, type: 'FS', lag: 0 }
+        ]);
+
+        const idMepF = id++;
+        makeTask(idMepF, `MEP 마감/기기 F${f}`, mepFinish, 0.85, mepCostPerFloor * 0.45, 1.25, [
+          { pred: idInterior, type: 'FS', lag: 0 }
+        ]);
+        mepFinishIds.push(idMepF);
+
+        const idEF = id++;
+        makeTask(idEF, `전기·통신·소방 F${f} (별도)`, cal(6), 0.85, 0, 1.0, [
+          { pred: idFrame, type: 'FS', lag: 0 }
+        ], true);
+        elecFireIds.push(idEF);
+      }
+
+      // 부대토목·조경(병렬)
+      const idSite = id++;
+      makeTask(idSite, '부대토목·조경', cal(30), 0.85, cost.site, 1.20, [
+        { pred: frameIds[0], type: 'SS', lag: siteStartLag }
+      ]);
+
+      // TAB·시운전(전체)
+      const idComm = id++;
+      const commDeps = [];
+      mepFinishIds.forEach(pid => commDeps.push({ pred: pid, type: 'FS', lag: 0 }));
+      elecFireIds.forEach(pid => commDeps.push({ pred: pid, type: 'FS', lag: 0 }));
+      makeTask(idComm, 'TAB·시운전·성능검증', commissioning, 0.90, total * 0.01, 1.30, commDeps);
+
+      // 준공·인허가(달력일, 고정)
+      const idClose = id++;
+      makeTask(idClose, '준공서류·검사·인허가', Math.max(1, state.endAdminDays), 1.0, 0, 1.0, [
+        { pred: idComm, type: 'FS', lag: 0 },
+        { pred: idSite, type: 'FS', lag: 0 }
+      ]);
+
+      return tasks;
+    }
+
+    // ===== CPM (deps 기반, SS/FS/lag, 완화 기반) =====
+    function calculateCPM(taskList) {
+      const map = {};
+      taskList.forEach(t => {
+        map[t.id] = {
+          ...t,
+          es: 0, ef: 0, ls: 0, lf: 0,
+          float: 0, isCP: false,
+          successors: []
         };
-        Chart.register(verticalLinePlugin);
+      });
 
-        // --- Global State ---
-        let state = {
-            projectType: 'building',
-            baseDirectCost: 23300,
-            adminDays: 60,
-            annualNonWorkingDays: 65,
-            constants: { K: 25, B: 0.32 },
-            tasks: [],
-            normalCPM: null,
-            currentCPM: null,
-            standardDuration: 0,
-            simulationPoints: [],
-            optimalPoint: null,
-            chartMode: 'delta' 
+      const edges = [];
+
+      const addEdge = (from, to, w) => {
+        edges.push({ from, to, w });
+        if (map[from]) map[from].successors.push({ id: to, w });
+      };
+
+      taskList.forEach(t => {
+        const deps = Array.isArray(t.deps) ? t.deps : [];
+        deps.forEach(d => {
+          const pred = map[d.pred];
+          if (!pred) return;
+          const lag = Math.max(0, d.lag || 0);
+          const w = (d.type === 'SS') ? lag : (pred.currentDur + lag);
+          addEdge(pred.id, t.id, w);
+        });
+      });
+
+      const ids = Object.keys(map).map(Number);
+      const n = ids.length;
+
+      // Forward relaxation
+      for (let iter = 0; iter < n - 1; iter++) {
+        let updated = false;
+        for (const e of edges) {
+          const a = map[e.from];
+          const b = map[e.to];
+          const cand = a.es + e.w;
+          if (b.es < cand) {
+            b.es = cand;
+            updated = true;
+          }
+        }
+        if (!updated) break;
+      }
+
+      ids.forEach(id => {
+        const node = map[id];
+        node.ef = node.es + node.currentDur;
+      });
+
+      const projectDur = Math.max(...ids.map(id => map[id].ef));
+
+      // Latest start upper bounds init
+      ids.forEach(id => {
+        map[id].ls = projectDur - map[id].currentDur;
+      });
+
+      // Backward relaxation: S_from <= S_to - w
+      for (let iter = 0; iter < n - 1; iter++) {
+        let updated = false;
+        for (const e of edges) {
+          const a = map[e.from];
+          const b = map[e.to];
+          const ub = b.ls - e.w;
+          if (a.ls > ub) {
+            a.ls = ub;
+            updated = true;
+          }
+        }
+        if (!updated) break;
+      }
+
+      ids.forEach(id => {
+        const node = map[id];
+        node.lf = node.ls + node.currentDur;
+        node.float = node.ls - node.es;
+        node.isCP = node.float <= 1e-6;
+      });
+
+      return { projectDur, nodes: Object.values(map), edges };
+    }
+
+    function calculateCurrentCPM() {
+      state.currentCPM = calculateCPM(state.tasks);
+      if (!state.normalCPM) {
+        state.normalCPM = JSON.parse(JSON.stringify(state.currentCPM));
+      }
+    }
+
+    // ===== Min-Cut based Multi-CP Crashing =====
+    function dinicMaxFlow(N, s, t, addEdge) {
+      const g = Array.from({ length: N }, () => []);
+      const INF = 10 ** 15;
+
+      const _add = (u, v, c) => {
+        const a = { to: v, rev: g[v].length, cap: c };
+        const b = { to: u, rev: g[u].length, cap: 0 };
+        g[u].push(a);
+        g[v].push(b);
+      };
+
+      addEdge(_add, INF);
+
+      let flow = 0;
+      while (true) {
+        const level = Array(N).fill(-1);
+        const q = [];
+        level[s] = 0;
+        q.push(s);
+        for (let qi = 0; qi < q.length; qi++) {
+          const u = q[qi];
+          for (const e of g[u]) {
+            if (e.cap > 1e-12 && level[e.to] < 0) {
+              level[e.to] = level[u] + 1;
+              q.push(e.to);
+            }
+          }
+        }
+        if (level[t] < 0) break;
+
+        const it = Array(N).fill(0);
+        const dfs = (u, f) => {
+          if (u === t) return f;
+          for (; it[u] < g[u].length; it[u]++) {
+            const e = g[u][it[u]];
+            if (e.cap <= 1e-12 || level[e.to] !== level[u] + 1) continue;
+            const ret = dfs(e.to, Math.min(f, e.cap));
+            if (ret > 1e-12) {
+              e.cap -= ret;
+              g[e.to][e.rev].cap += ret;
+              return ret;
+            }
+          }
+          return 0;
         };
 
-        let costChart = null;
+        while (true) {
+          const pushed = dfs(s, INF);
+          if (pushed <= 1e-12) break;
+          flow += pushed;
+        }
+      }
 
-        // --- Core Functions ---
-        function updateGlobalState() {
-            state.projectType = document.getElementById('projectType').value;
-            state.baseDirectCost = parseFloat(document.getElementById('baseDirectCost').value) || 0;
-            state.adminDays = parseInt(document.getElementById('adminDays').value) || 0;
+      const seen = Array(N).fill(false);
+      const st = [s];
+      seen[s] = true;
+      while (st.length) {
+        const u = st.pop();
+        for (const e of g[u]) {
+          if (e.cap > 1e-12 && !seen[e.to]) {
+            seen[e.to] = true;
+            st.push(e.to);
+          }
+        }
+      }
 
-            if (state.projectType === 'building') state.constants = { K: 25, B: 0.32 };
-            else if (state.projectType === 'civil') state.constants = { K: 30, B: 0.30 };
-            else if (state.projectType === 'plant') state.constants = { K: 35, B: 0.35 };
+      return { flow, reachable: seen };
+    }
 
-            distributeTasks();
+    function chooseCrashSetByMinCut(taskList, cpm) {
+      const tol = 1e-6;
+      const byId = {};
+      cpm.nodes.forEach(n => byId[n.id] = n);
+
+      // CP tight edges only
+      const tight = cpm.edges.filter(e => {
+        const a = byId[e.from];
+        const b = byId[e.to];
+        if (!a?.isCP || !b?.isCP) return false;
+        return Math.abs(b.es - (a.es + e.w)) <= tol;
+      });
+
+      const cpIds = cpm.nodes.filter(n => n.isCP).map(n => n.id);
+      if (cpIds.length === 0) return null;
+
+      // start/end in CP subgraph
+      const indeg = new Map();
+      const out = new Map();
+      cpIds.forEach(id => { indeg.set(id, 0); out.set(id, []); });
+
+      tight.forEach(e => {
+        if (!indeg.has(e.to) || !out.has(e.from)) return;
+        indeg.set(e.to, indeg.get(e.to) + 1);
+        out.get(e.from).push(e.to);
+      });
+
+      const starts = cpIds.filter(id => (indeg.get(id) || 0) === 0);
+      const ends = cpIds.filter(id => Math.abs(byId[id].ef - cpm.projectDur) <= tol);
+      if (starts.length === 0 || ends.length === 0) return null;
+
+      // Node-splitting graph for min node cut
+      const idxOf = new Map();
+      cpIds.forEach((id, i) => idxOf.set(id, i));
+
+      const S = cpIds.length * 2;
+      const T = S + 1;
+      const N = T + 1;
+
+      const SCALE = 1000; // slope -> int capacity
+
+      const { reachable } = dinicMaxFlow(N, S, T, (add, INF) => {
+        // node capacity edges
+        cpIds.forEach(id => {
+          const i = idxOf.get(id);
+          const vin = i * 2;
+          const vout = i * 2 + 1;
+
+          const task = taskList.find(t => t.id === id);
+          const crashable = !!task && task.currentDur > task.crashDur && getCostSlope(task) > 0;
+          const cap = crashable ? Math.round(getCostSlope(task) * SCALE) : INF;
+
+          add(vin, vout, cap);
+        });
+
+        // tight edges with INF
+        tight.forEach(e => {
+          const iu = idxOf.get(e.from);
+          const iv = idxOf.get(e.to);
+          if (iu == null || iv == null) return;
+          const uout = iu * 2 + 1;
+          const vin = iv * 2;
+          add(uout, vin, INF);
+        });
+
+        // super source/sink connections
+        starts.forEach(id => {
+          const i = idxOf.get(id);
+          add(S, i * 2, INF);
+        });
+        ends.forEach(id => {
+          const i = idxOf.get(id);
+          add(i * 2 + 1, T, INF);
+        });
+      });
+
+      // cut nodes: vin reachable, vout not reachable
+      const picked = [];
+      cpIds.forEach(id => {
+        const i = idxOf.get(id);
+        const vin = i * 2;
+        const vout = i * 2 + 1;
+
+        if (reachable[vin] && !reachable[vout]) {
+          const task = taskList.find(t => t.id === id);
+          if (task && task.currentDur > task.crashDur && getCostSlope(task) > 0) picked.push(id);
+        }
+      });
+
+      return picked.length ? picked : null;
+    }
+
+    function generateTradeOffData() {
+      let simTasks = JSON.parse(JSON.stringify(state.tasks)).map(t => ({ ...t, currentDur: t.normalDur }));
+      let points = [];
+      let minTotalCost = Infinity;
+      let optimal = null;
+
+      const baseCPM = calculateCPM(simTasks);
+
+      const indirectOverride = parseFloat(document.getElementById('indirectPerDayOverride')?.value || '0') || 0;
+      const indirectPerDay = (indirectOverride > 0)
+        ? indirectOverride
+        : ((state.baseDirectCost * 0.37) / Math.max(1, baseCPM.projectDur));
+
+      const record = (taskList, isDelay = false, overrideDur = null) => {
+        const cpm = calculateCPM(taskList);
+        const dur = overrideDur ?? cpm.projectDur;
+
+        let addDirect = 0;
+        if (!isDelay) {
+          taskList.forEach(t => {
+            if (t.normalDur > t.currentDur) addDirect += (t.normalDur - t.currentDur) * getCostSlope(t);
+          });
         }
 
-        function distributeTasks() {
-            const nwRatio = state.annualNonWorkingDays / 365;
-            const pureWorkingDays = Math.round(state.constants.K * Math.pow(state.baseDirectCost, state.constants.B));
-            const constructionDays = Math.round(pureWorkingDays / (1 - nwRatio));
-            const totalDuration = constructionDays + state.adminDays;
-            
-            state.standardDuration = totalDuration;
+        const totalDirect = state.baseDirectCost + addDirect;
+        const totalIndirect = dur * indirectPerDay;
+        const total = totalDirect + totalIndirect;
 
-            const profiles = [
-                { id: 1, name: '착공 및 준비기간', durRatio: 0.05, costRatio: 0, mult: 1.0, crash: 1.0 }, 
-                { id: 2, name: '가설 및 토공사', durRatio: 0.10, costRatio: 0.05, mult: 1.2, crash: 0.90 },
-                { id: 3, name: '지하 골조공사', durRatio: 0.15, costRatio: 0.15, mult: 1.6, crash: 0.90 },
-                { id: 4, name: '지상 골조공사', durRatio: 0.25, costRatio: 0.35, mult: 2.0, crash: 0.90 },
-                { id: 5, name: '조적 및 방수공사', durRatio: 0.08, costRatio: 0.05, mult: 1.15, crash: 0.90 },
-                { id: 6, name: '기계 및 전기설비', durRatio: 0.20, costRatio: 0.15, mult: 1.3, crash: 0.90 },
-                { id: 7, name: '외장 및 창호공사', durRatio: 0.15, costRatio: 0.12, mult: 1.25, crash: 0.90 },
-                { id: 8, name: '미장 및 내장목공', durRatio: 0.12, costRatio: 0.05, mult: 1.1, crash: 0.90 },
-                { id: 9, name: '마감 및 수장공사', durRatio: 0.15, costRatio: 0.05, mult: 1.05, crash: 0.90 },
-                { id: 10, name: '부대토목공사', durRatio: 0.10, costRatio: 0.02, mult: 1.2, crash: 0.90 },
-                { id: 11, name: '조경공사', durRatio: 0.10, costRatio: 0.01, mult: 1.08, crash: 0.90 },
-                { id: 12, name: '준공 및 인허가', durRatio: 0.05, costRatio: 0, mult: 1.0, crash: 1.0 }
-            ];
-
-            const halfAdmin = Math.round(state.adminDays / 2);
-            const constructionOnlyDays = totalDuration - state.adminDays;
-
-            state.tasks = profiles.map(p => {
-                let normDur;
-                if (p.id === 1) normDur = halfAdmin;
-                else if (p.id === 12) normDur = state.adminDays - halfAdmin;
-                else normDur = Math.max(1, Math.round(constructionOnlyDays * p.durRatio));
-
-                return {
-                    id: p.id, name: p.name,
-                    normalDur: normDur, currentDur: normDur,
-                    crashDur: Math.round(normDur * p.crash),
-                    normalCost: Math.round(state.baseDirectCost * 0.65 * p.costRatio),
-                    mult: p.mult
-                };
-            });
-
-            // Make sure the CP sums up correctly
-            const constTasks = state.tasks.filter(t => t.id > 1 && t.id < 12);
-            const currentSum = constTasks.reduce((s, t) => s + t.normalDur, 0);
-            if (currentSum !== constructionOnlyDays) {
-                state.tasks[8].normalDur += (constructionOnlyDays - currentSum);
-                state.tasks[8].currentDur += (constructionOnlyDays - currentSum);
-            }
-
-            document.getElementById('standardDurationValue').innerText = totalDuration;
-            calculateCurrentCPM();
-            generateTradeOffData();
-            renderSliders();
-            updateUI();
-        }
-
-        function calculateCPM(taskList) {
-            const taskMap = {};
-            taskList.forEach(t => taskMap[t.id] = { ...t, es: 0, ef: 0, ls: 0, lf: 0, successors: [] });
-
-            taskList.forEach(t => {
-                let preds = [];
-                if (t.id === 1) preds = [];
-                else if (t.id === 2) preds = [1];
-                else if (t.id === 3) preds = [2];
-                else if (t.id === 4) preds = [3];
-                else if (t.id === 5 || t.id === 6 || t.id === 7) preds = [4];
-                else if (t.id === 8) preds = [5];
-                else if (t.id === 9) preds = [8];
-                else if (t.id === 10) preds = [7];
-                else if (t.id === 11) preds = [10];
-                else if (t.id === 12) preds = [9, 11, 6];
-
-                taskMap[t.id].preds = preds;
-                preds.forEach(pId => taskMap[pId].successors.push(t.id));
-            });
-
-            taskList.forEach(t => {
-                let maxEf = 0;
-                taskMap[t.id].preds.forEach(pId => maxEf = Math.max(maxEf, taskMap[pId].ef));
-                taskMap[t.id].es = maxEf;
-                taskMap[t.id].ef = maxEf + t.currentDur;
-            });
-
-            const projectDur = Math.max(...Object.values(taskMap).map(t => t.ef));
-
-            [...taskList].reverse().forEach(t => {
-                const node = taskMap[t.id];
-                if (node.successors.length === 0) node.lf = projectDur;
-                else {
-                    let minLs = projectDur;
-                    node.successors.forEach(sId => minLs = Math.min(minLs, taskMap[sId].ls));
-                    node.lf = minLs;
-                }
-                node.ls = node.lf - t.currentDur;
-                node.float = node.ls - node.es;
-                node.isCP = node.float === 0;
-            });
-
-            return { projectDur, nodes: Object.values(taskMap) };
-        }
-
-        function calculateCurrentCPM() {
-            state.currentCPM = calculateCPM(state.tasks);
-            if (!state.normalCPM) state.normalCPM = JSON.parse(JSON.stringify(state.currentCPM));
-        }
-
-        function getCostSlope(task) {
-            if (task.normalDur === task.crashDur) return 0;
-            const crashCost = task.normalCost * task.mult;
-            return (crashCost - task.normalCost) / (task.normalDur - task.crashDur);
-        }
-
-        function generateTradeOffData() {
-            let simTasks = JSON.parse(JSON.stringify(state.tasks)).map(t => ({...t, currentDur: t.normalDur}));
-            let points = [];
-            let minTotalCost = Infinity;
-            let optimal = null;
-
-            // 간접비를 22%로 통일하여 공기 연장 시 비용이 확실하게 오르도록 수정
-            const indirectPerDay = (state.baseDirectCost * 0.22) / state.normalCPM.projectDur;
-
-            const record = (taskList, isDelay = false, overrideDur = null) => {
-                const cpm = calculateCPM(taskList);
-                const dur = overrideDur || cpm.projectDur;
-                
-                let addDirect = 0;
-                if (!isDelay) {
-                    taskList.forEach(t => addDirect += (t.normalDur - t.currentDur) * getCostSlope(t));
-                }
-                
-                const totalDirect = state.baseDirectCost + addDirect;
-                const totalIndirect = dur * indirectPerDay;
-                const total = totalDirect + totalIndirect;
-                
-                const pt = {
-                    duration: dur,
-                    direct: totalDirect,
-                    indirect: totalIndirect,
-                    total: total,
-                    state: JSON.parse(JSON.stringify(taskList))
-                };
-                points.push(pt);
-                if (!isDelay && total < minTotalCost) {
-                    minTotalCost = total;
-                    optimal = pt;
-                }
-            };
-
-            // 1. 공기 지연 구간 (Right side of U-Curve)
-            const maxRight = Math.max(state.normalCPM.projectDur, state.standardDuration) + 50;
-            for (let dur = maxRight; dur > state.normalCPM.projectDur; dur--) {
-                record(simTasks, true, dur);
-            }
-
-            // 2. 정상 공기 지점
-            record(simTasks);
-
-            // 3. 공기 단축 탐색 (Greedy Crashing - Left side of U-Curve)
-            while (true) {
-                const cpm = calculateCPM(simTasks);
-                const nodes = {}; cpm.nodes.forEach(n => nodes[n.id] = n);
-                
-                let bestOption = null;
-                let minSlope = Infinity;
-
-                const check = (ids) => {
-                    if (ids.every(id => simTasks.find(t => t.id === id).currentDur > simTasks.find(t => t.id === id).crashDur)) {
-                        const s = ids.reduce((acc, id) => acc + getCostSlope(simTasks.find(t => t.id === id)), 0);
-                        if (s < minSlope) { minSlope = s; bestOption = ids; }
-                    }
-                };
-
-                if (nodes[2].isCP) check([2]);
-                if (nodes[3].isCP) check([3]);
-                if (nodes[4].isCP) check([4]);
-
-                const p1 = [5, 8, 9].filter(id => nodes[id].isCP);
-                const p2 = [6].filter(id => nodes[id].isCP);
-                const p3 = [7, 10, 11].filter(id => nodes[id].isCP);
-
-                let activeSets = [];
-                if (p1.length) activeSets.push(p1);
-                if (p2.length) activeSets.push(p2);
-                if (p3.length) activeSets.push(p3);
-
-                if (activeSets.length > 0) {
-                    const combos = activeSets.reduce((a, b) => a.flatMap(d => b.map(e => [d, e].flat())), [[]]);
-                    combos.forEach(c => check(c));
-                }
-
-                if (!bestOption) break;
-                
-                bestOption.forEach(id => simTasks.find(t => t.id === id).currentDur -= 1);
-                record(simTasks);
-            }
-
-            state.simulationPoints = points.sort((a,b) => a.duration - b.duration);
-            state.optimalPoint = optimal;
-        }
-
-        // --- UI Rendering ---
-        function renderSliders() {
-            const container = document.getElementById('taskSlidersContainer');
-            container.innerHTML = '';
-            state.tasks.forEach(t => {
-                const isFixed = t.normalDur === t.crashDur;
-                const node = state.currentCPM.nodes.find(n => n.id === t.id);
-                const slope = getCostSlope(t);
-                const diff = t.normalDur - t.currentDur;
-
-                const html = `
-                    <div class="relative group">
-                        <div class="flex justify-between items-start mb-2">
-                            <div class="flex items-center gap-2">
-                                <span class="text-sm font-bold text-slate-900">${t.name}</span>
-                                ${isFixed ? '<span class="text-[9px] bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded uppercase font-black tracking-widest">Fixed</span>' 
-                                : node.isCP ? '<span class="text-[9px] bg-rose-100 text-rose-600 px-1.5 py-0.5 rounded font-black border border-rose-200 animate-pulse">Critical Path</span>' 
-                                : `<span class="text-[9px] bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded font-bold border border-slate-200 tracking-tighter">Float ${node.float}d</span>`}
-                            </div>
-                            <div class="text-right">
-                                ${!isFixed ? `<div class="text-[10px] font-black text-rose-500 tracking-tight">+${formatCurrency(slope)} / 1d</div>` : ''}
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-4">
-                            <input type="range" min="${t.crashDur}" max="${t.normalDur}" value="${t.currentDur}" 
-                                oninput="handleSliderChange(${t.id}, this.value)" ${isFixed ? 'disabled' : ''}
-                                class="flex-1 h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer custom-slider ${isFixed ? 'opacity-30 cursor-not-allowed' : ''}" />
-                            <div class="w-24 py-1 rounded-xl text-center text-xs font-black shadow-inner flex flex-col ${isFixed ? 'bg-slate-800 text-slate-500' : diff > 0 ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-400'}">
-                                <span>${t.currentDur}일</span>
-                                ${diff > 0 ? `<span class="text-[8px] opacity-80">(-${diff}d)</span>` : ''}
-                            </div>
-                        </div>
-                    </div>
-                `;
-                container.innerHTML += html;
-            });
-        }
-
-        function renderGantt() {
-            const container = document.getElementById('ganttContainer');
-            container.innerHTML = '';
-            const maxDur = Math.max(state.normalCPM.projectDur, state.currentCPM.projectDur);
-
-            state.tasks.forEach(t => {
-                const normalNode = state.normalCPM.nodes.find(n => n.id === t.id);
-                const currentNode = state.currentCPM.nodes.find(n => n.id === t.id);
-                const isFixed = t.normalDur === t.crashDur;
-
-                const nLeft = (normalNode.es / maxDur) * 100;
-                const nWidth = (t.normalDur / maxDur) * 100;
-                const cLeft = (currentNode.es / maxDur) * 100;
-                const cWidth = (t.currentDur / maxDur) * 100;
-
-                const html = `
-                    <div class="flex items-center gap-4 h-10 group">
-                        <div class="w-24 shrink-0 text-[10px] font-black text-slate-500 text-right leading-tight uppercase tracking-tighter">${t.name}</div>
-                        <div class="flex-1 relative h-full bg-slate-50/50 rounded-xl border border-slate-100 overflow-hidden">
-                            <div class="absolute top-1.5 h-1.5 bg-slate-200 rounded-full transition-all duration-500" style="left: ${nLeft}%; width: ${nWidth}%"></div>
-                            <div class="absolute bottom-1.5 h-3.5 rounded shadow-sm transition-all duration-500 flex items-center justify-end px-1 ${isFixed ? 'bg-slate-800' : currentNode.isCP ? 'bg-rose-400' : 'bg-blue-400'}" style="left: ${cLeft}%; width: ${cWidth}%">
-                                ${cWidth > 5 ? `<span class="text-[8px] font-black text-white">${t.currentDur}</span>` : ''}
-                            </div>
-                        </div>
-                    </div>
-                `;
-                container.innerHTML += html;
-            });
-        }
-
-        function calculateMetrics(taskList) {
-            const cpm = calculateCPM(taskList);
-            const indirectPerDay = (state.baseDirectCost * 0.22) / state.normalCPM.projectDur;
-            
-            let addDirect = 0;
-            taskList.forEach(t => addDirect += (t.normalDur - t.currentDur) * getCostSlope(t));
-
-            const dir = state.baseDirectCost + addDirect;
-            const ind = cpm.projectDur * indirectPerDay;
-            
-            const nwRatio = state.annualNonWorkingDays / 365;
-            const constOnly = cpm.projectDur - state.adminDays;
-            const working = Math.round(constOnly * (1 - nwRatio));
-            const nw = constOnly - working;
-
-            return {
-                duration: cpm.projectDur,
-                direct: dir,
-                indirect: ind,
-                total: dir + ind,
-                workingDays: working,
-                nwDays: nw,
-                indirectPerDay: indirectPerDay
-            };
-        }
-
-        function updateUI() {
-            const metrics = calculateMetrics(state.tasks);
-            
-            document.getElementById('currentDurationDisplay').innerText = metrics.duration;
-            document.getElementById('durationDiffDisplay').innerText = `${metrics.duration - state.normalCPM.projectDur}일`;
-            document.getElementById('directCostDisplay').innerText = formatCurrency(metrics.direct);
-            document.getElementById('indirectCostDisplay').innerText = formatCurrency(metrics.indirect);
-            document.getElementById('totalCostDisplay').innerText = formatCurrency(metrics.total);
-            document.getElementById('reportDailyIndirect').innerText = `매일 ${formatCurrency(metrics.indirectPerDay)}원`;
-
-            const panel = document.getElementById('optimizerPanel');
-            if (state.optimalPoint && Math.abs(state.optimalPoint.duration - metrics.duration) > 0 && state.optimalPoint.total < metrics.total - 1) {
-                panel.classList.remove('hidden');
-                document.getElementById('optimalDurationText').innerText = state.optimalPoint.duration;
-            } else {
-                panel.classList.add('hidden');
-            }
-
-            updateTargetUI();
-            renderGantt();
-            updateChart();
-        }
-
-        function updateTargetUI() {
-            if(!state.simulationPoints || state.simulationPoints.length === 0) return;
-            
-            const minPossibleDur = state.simulationPoints[0].duration;
-            const maxCrashPossible = state.normalCPM.projectDur - minPossibleDur;
-            
-            document.getElementById('maxCrashPossibleDisplay').innerText = maxCrashPossible;
-            
-            let targetVal = parseInt(document.getElementById('targetDaysInput').value) || 0;
-            const targetDuration = state.normalCPM.projectDur - targetVal;
-            const targetPoint = state.simulationPoints.find(p => p.duration === targetDuration) || 
-                               state.simulationPoints.reduce((prev, curr) => 
-                                Math.abs(curr.duration - targetDuration) < Math.abs(prev.duration - targetDuration) ? curr : prev
-                               );
-            const normalPt = state.simulationPoints.find(p => p.duration === state.normalCPM.projectDur);
-            
-            if (targetPoint && normalPt) {
-                document.getElementById('targetAddDirect').innerText = `+${formatCurrency(Math.max(0, targetPoint.direct - normalPt.direct))}`;
-                document.getElementById('targetSubIndirect').innerText = `-${formatCurrency(Math.max(0, normalPt.indirect - targetPoint.indirect))}`;
-            }
-        }
-
-        function handleSliderChange(id, val) {
-            const task = state.tasks.find(t => t.id === id);
-            task.currentDur = parseInt(val);
-            calculateCurrentCPM();
-            renderSliders();
-            updateUI();
-        }
-
-        function applyOptimalState() {
-            state.tasks = JSON.parse(JSON.stringify(state.optimalPoint.state));
-            calculateCurrentCPM();
-            renderSliders();
-            updateUI();
-        }
-
-        function applyTargetDuration() {
-            const targetVal = parseInt(document.getElementById('targetDaysInput').value) || 0;
-            const targetDuration = state.normalCPM.projectDur - targetVal;
-            const pt = state.simulationPoints.find(p => p.duration === targetDuration) || 
-                       state.simulationPoints.reduce((prev, curr) => 
-                        Math.abs(curr.duration - targetDuration) < Math.abs(prev.duration - targetDuration) ? curr : prev
-                       );
-            
-            state.tasks = JSON.parse(JSON.stringify(pt.state));
-            calculateCurrentCPM();
-            renderSliders();
-            updateUI();
-        }
-
-        function toggleChartMode() {
-            state.chartMode = state.chartMode === 'delta' ? 'total' : 'delta';
-            document.getElementById('chartModeBtn').innerHTML = state.chartMode === 'delta' 
-                ? '<i class="fa-solid fa-eye-low-beam"></i> <span>변동분만 보기</span>' 
-                : '<i class="fa-solid fa-eye"></i> <span>전체 규모 보기</span>';
-            updateChart();
-        }
-
-        function updateChart() {
-            const ctx = document.getElementById('costCurveChart').getContext('2d');
-            const data = state.simulationPoints;
-
-            const basePt = data.find(p => p.duration === state.normalCPM.projectDur);
-            const baseSum = basePt ? basePt.total : 0;
-            const baseDir = basePt ? basePt.direct : 0;
-            const baseInd = basePt ? basePt.indirect : 0;
-
-            const prepare = (val, base) => state.chartMode === 'delta' ? val - base : val;
-
-            const currentMetrics = calculateMetrics(state.tasks);
-
-            // 💡 표준공기가 차트 렌더링 범위(X축)를 벗어나지 않도록 표시 범위 자동 확장
-            const viewMaxDur = Math.max(state.normalCPM.projectDur, state.standardDuration, state.optimalPoint?.duration || 0, currentMetrics.duration);
-            const viewMinDur = Math.min(state.normalCPM.projectDur, state.standardDuration, state.optimalPoint?.duration || Infinity, currentMetrics.duration);
-            
-            const chartXMin = Math.max(1, viewMinDur - 40);
-            const chartXMax = viewMaxDur + 60;
-
-            const visiblePoints = data.filter(d => d.duration >= chartXMin && d.duration <= chartXMax);
-
-            const chartData = {
-                labels: visiblePoints.map(p => p.duration),
-                datasets: [
-                    {
-                        label: '총 공사비',
-                        data: visiblePoints.map(p => prepare(p.total, baseSum)),
-                        borderColor: '#2563eb', // Blue 600
-                        borderWidth: 4,
-                        pointRadius: 0,
-                        tension: 0.4,
-                        fill: false,
-                        zIndex: 10
-                    },
-                    {
-                        label: '직접비 누계',
-                        data: visiblePoints.map(p => prepare(p.direct, baseDir)),
-                        borderColor: 'rgba(244, 63, 94, 0.5)', // Rose
-                        borderWidth: 2,
-                        borderDash: [5, 5],
-                        pointRadius: 0,
-                        tension: 0.4
-                    },
-                    {
-                        label: '간접비 누계',
-                        data: visiblePoints.map(p => prepare(p.indirect, baseInd)),
-                        borderColor: 'rgba(16, 185, 129, 0.5)', // Emerald
-                        borderWidth: 2,
-                        borderDash: [5, 5],
-                        pointRadius: 0,
-                        tension: 0.4
-                    }
-                ]
-            };
-
-            if (costChart) costChart.destroy();
-
-            costChart = new Chart(ctx, {
-                type: 'line',
-                data: chartData,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    layout: { padding: { top: 40 } },
-                    scales: {
-                        x: {
-                            title: { display: true, text: '공사 기간 (일)', font: { weight: 'bold' } },
-                            grid: { display: false }
-                        },
-                        y: {
-                            title: { display: true, text: state.chartMode === 'delta' ? '비용 증감 (백만원)' : '총 비용 (백만원)', font: { weight: 'bold' } },
-                            ticks: { callback: v => v.toLocaleString() }
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false,
-                            callbacks: {
-                                title: (ctx) => `공기: ${ctx[0].label}일`,
-                                label: (ctx) => `${ctx.dataset.label}: ${Math.round(ctx.raw).toLocaleString()} 백만`
-                            }
-                        },
-                        // 💡 4대 주요 지점 커스텀 마커 플러그인 정상 적용
-                        verticalLines: {
-                            lines: [
-                                { x: state.standardDuration, text: '① 표준공기', color: '#f59e0b', dash: [4, 4] },
-                                { x: state.normalCPM.projectDur, text: '② 계약공기', color: '#64748b', dash: [4, 4] },
-                                { x: state.optimalPoint.duration, text: '③ 최소비용', color: '#10b981', dash: [] },
-                                { x: currentMetrics.duration, text: '④ 현재공기', color: '#2563eb', dash: [] }
-                            ]
-                        }
-                    }
-                }
-            });
-        }
-
-        function formatCurrency(v) {
-            return new Intl.NumberFormat('ko-KR').format(Math.round(v));
-        }
-
-        // --- Init ---
-        window.onload = () => {
-            document.getElementById('reportDate').innerText = new Date().toLocaleDateString('ko-KR');
-            updateGlobalState();
+        const pt = {
+          duration: dur,
+          direct: totalDirect,
+          indirect: totalIndirect,
+          total,
+          state: JSON.parse(JSON.stringify(taskList))
         };
 
-    </script>
+        points.push(pt);
+
+        if (!isDelay && total < minTotalCost) {
+          minTotalCost = total;
+          optimal = pt;
+        }
+      };
+
+      // Delay side includes legal standard & contract line if longer than base
+      const maxRight = Math.max(
+        baseCPM.projectDur,
+        state.targetNormalDuration,
+        state.facilityCheck?.otherBuilding || 0,
+        state.facilityCheck?.commonForm || 0
+      ) + 60;
+
+      for (let dur = maxRight; dur > baseCPM.projectDur; dur--) record(simTasks, true, dur);
+      record(simTasks); // baseline
+
+      // Crash side (1 day step)
+      let guard = 0;
+      while (guard++ < 20000) {
+        const cpm = calculateCPM(simTasks);
+        const pick = chooseCrashSetByMinCut(simTasks, cpm);
+        if (!pick) break;
+
+        pick.forEach(id => {
+          const t = simTasks.find(x => x.id === id);
+          if (t && t.currentDur > t.crashDur) t.currentDur -= 1;
+        });
+
+        const next = calculateCPM(simTasks);
+        if (next.projectDur < cpm.projectDur) record(simTasks);
+        else break;
+      }
+
+      state.simulationPoints = points.sort((a, b) => a.duration - b.duration);
+      state.optimalPoint = optimal;
+    }
+
+    // ===== UI Renderers =====
+    function renderSliders() {
+      const container = document.getElementById('taskSlidersContainer');
+      if (!container) return;
+      container.innerHTML = '';
+
+      state.tasks.forEach(t => {
+        const isFixed = t.normalDur === t.crashDur;
+        const isNoCost = (t.normalCost === 0 && t.crashCost === 0);
+        const node = state.currentCPM?.nodes?.find(n => n.id === t.id);
+        const slope = getCostSlope(t);
+        const diff = t.normalDur - t.currentDur;
+
+        const floatText = node ? `Float ${node.float.toFixed(0)}d` : 'Float --';
+        const isCP = node ? node.isCP : false;
+
+        const html = `
+          <div class="relative group bg-slate-50/50 p-4 rounded-2xl border border-slate-100 hover:border-blue-200 transition-colors">
+            <div class="flex justify-between items-start mb-3">
+              <div class="flex flex-col gap-1.5">
+                <span class="text-[13px] font-bold text-slate-900">${t.name}</span>
+                <div class="flex gap-1">
+                  ${isFixed ? '<span class="text-[9px] bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded uppercase font-black tracking-widest">Fixed</span>'
+                    : isNoCost ? '<span class="text-[9px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded font-black italic">No Cost</span>'
+                      : isCP ? '<span class="text-[9px] bg-rose-100 text-rose-600 px-1.5 py-0.5 rounded font-black border border-rose-200 animate-pulse">Critical Path</span>'
+                        : `<span class="text-[9px] bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded font-bold border border-slate-200 tracking-tighter">${floatText}</span>`}
+                </div>
+              </div>
+              <div class="text-right">
+                ${(!isFixed && !isNoCost && slope > 0) ? `<div class="text-[10px] font-black text-rose-500 tracking-tight bg-rose-50 px-1.5 py-0.5 rounded">+${formatCurrency(slope)} / 1d</div>` : ''}
+              </div>
+            </div>
+
+            <div class="flex items-center gap-4">
+              <input type="range" min="${t.crashDur}" max="${t.normalDur}" value="${t.currentDur}"
+                oninput="handleSliderChange(${t.id}, this.value)" ${isFixed ? 'disabled' : ''}
+                class="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer custom-slider ${isFixed ? 'opacity-40 cursor-not-allowed' : ''}" />
+              <div class="w-16 py-1.5 rounded-xl text-center text-[13px] font-black shadow-inner flex flex-col justify-center ${isFixed ? 'bg-slate-800 text-slate-500' : diff > 0 ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600'}">
+                <span>${t.currentDur}일</span>
+              </div>
+            </div>
+
+            ${diff > 0 ? `<div class="absolute -bottom-2.5 right-4 bg-emerald-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md border border-white">-${diff}d 단축됨</div>` : ''}
+          </div>
+        `;
+        container.innerHTML += html;
+      });
+    }
+
+    function renderGantt() {
+      const container = document.getElementById('ganttContainer');
+      if (!container) return;
+
+      let html = '';
+      const maxDur = Math.max(state.normalCPM.projectDur, state.currentCPM.projectDur);
+
+      const ticks = [];
+      for (let i = 0; i <= maxDur; i += 30) ticks.push(i);
+      if (ticks[ticks.length - 1] !== maxDur && (maxDur - ticks[ticks.length - 1]) > 10) ticks.push(maxDur);
+
+      html += `<div class="absolute top-0 bottom-12 left-[112px] right-0 pointer-events-none z-0">`;
+      ticks.forEach(day => {
+        const ratio = (day / maxDur) * 100;
+        html += `<div class="absolute top-0 bottom-0 border-l border-dashed border-slate-200" style="left: ${ratio}%;"></div>`;
+      });
+      html += `</div>`;
+
+      html += `<div class="relative z-10 space-y-4">`;
+
+      const tasksSorted = [...state.tasks].sort((a, b) => {
+        const nA = state.normalCPM.nodes.find(x => x.id === a.id);
+        const nB = state.normalCPM.nodes.find(x => x.id === b.id);
+        return (nA?.es ?? 0) - (nB?.es ?? 0) || a.id - b.id;
+      });
+
+      tasksSorted.forEach(t => {
+        const normalNode = state.normalCPM.nodes.find(n => n.id === t.id);
+        const currentNode = state.currentCPM.nodes.find(n => n.id === t.id);
+
+        const isFixed = t.normalDur === t.crashDur;
+        const isNoCost = (t.normalCost === 0 && t.crashCost === 0);
+
+        const nLeft = ((normalNode?.es ?? 0) / maxDur) * 100;
+        const nWidth = (t.normalDur / maxDur) * 100;
+        const cLeft = ((currentNode?.es ?? 0) / maxDur) * 100;
+        const cWidth = (t.currentDur / maxDur) * 100;
+
+        html += `
+          <div class="flex items-center gap-4 h-10 group">
+            <div class="w-24 shrink-0 text-[11px] font-black text-slate-500 text-right leading-tight uppercase tracking-tighter">${t.name}</div>
+            <div class="flex-1 relative h-full bg-slate-50/70 rounded-xl border border-slate-100 overflow-hidden">
+              <div class="absolute top-1.5 h-1.5 bg-slate-200 rounded-full transition-all duration-500" style="left: ${nLeft}%; width: ${nWidth}%"></div>
+              <div class="absolute bottom-1.5 h-3.5 rounded shadow-sm transition-all duration-500 flex items-center justify-end px-1 ${
+                isFixed ? 'bg-slate-800' : isNoCost ? 'bg-slate-400' : (currentNode?.isCP ? 'bg-rose-400' : 'bg-blue-400')
+              }" style="left: ${cLeft}%; width: ${cWidth}%">
+                ${cWidth > 5 ? `<span class="text-[10px] font-black text-white">${t.currentDur}</span>` : ''}
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      html += `</div>`;
+
+      html += `
+        <div class="flex items-start gap-4 mt-4 pt-3 border-t border-slate-200 relative z-10 bg-white">
+          <div class="w-24 shrink-0 text-[10px] font-bold text-slate-400 text-right mt-0.5">누적 공사기간</div>
+          <div class="flex-1 relative h-6">
+            ${ticks.map(day => `
+              <div class="absolute top-0 flex flex-col items-center -translate-x-1/2" style="left: ${(day / maxDur) * 100}%">
+                <div class="w-px h-1.5 bg-slate-300 mb-1"></div>
+                <span class="text-[10px] font-bold text-slate-500">${day}일</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+
+      container.innerHTML = html;
+    }
+
+    function calculateMetrics(taskList) {
+      const cpm = calculateCPM(taskList);
+
+      const indirectOverride = parseFloat(document.getElementById('indirectPerDayOverride')?.value || '0') || 0;
+      const indirectPerDay = (indirectOverride > 0)
+        ? indirectOverride
+        : ((state.baseDirectCost * 0.37) / Math.max(1, state.normalCPM?.projectDur || cpm.projectDur));
+
+      let addDirect = 0;
+      taskList.forEach(t => {
+        if (t.normalDur > t.currentDur) addDirect += (t.normalDur - t.currentDur) * getCostSlope(t);
+      });
+
+      const dir = state.baseDirectCost + addDirect;
+      const ind = cpm.projectDur * indirectPerDay;
+
+      return { duration: cpm.projectDur, direct: dir, indirect: ind, total: dir + ind, indirectPerDay };
+    }
+
+    function updateComparisonTable(currentMetrics) {
+      const normalPt = state.simulationPoints.find(p => p.duration === state.normalCPM.projectDur);
+      const optimalPt = state.optimalPoint;
+
+      const standardPt = state.simulationPoints.find(p => p.duration === state.standardDuration); // 공식 검증치
+      if (!normalPt || !optimalPt) return;
+
+      const scenarios = [];
+      if (standardPt) scenarios.push({ id: 'std', name: '표준공기(공식 검증)', point: standardPt, badge: 'bg-amber-500', rowClass: 'bg-amber-50/40' });
+
+      scenarios.push({ id: 'base', name: '적정 공정계획(WBS 기준)', point: normalPt, badge: 'bg-slate-400', rowClass: 'bg-white' });
+      scenarios.push({ id: 'opt', name: '최소비용 (MC Point)', point: optimalPt, badge: 'bg-emerald-500', rowClass: 'bg-emerald-50/40' });
+      scenarios.push({ id: 'curr', name: '단축 가정 (Current)', point: currentMetrics, badge: 'bg-blue-600', rowClass: 'bg-blue-50/50 border-l-4 border-blue-400' });
+
+      scenarios.sort((a, b) => b.point.duration - a.point.duration);
+
+      const tbody = document.getElementById('comparisonTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      scenarios.forEach(sc => {
+        const diffDays = sc.point.duration - normalPt.duration;
+        const diffTotal = sc.point.total - normalPt.total;
+
+        const diffDaysStr = diffDays > 0 ? `+${diffDays}일` : diffDays < 0 ? `${diffDays}일` : '-';
+        const diffDaysColor = diffDays > 0 ? 'text-rose-500' : diffDays < 0 ? 'text-blue-600' : 'text-slate-400';
+
+        const diffTotalStr = (diffTotal > 0 ? '+' : '') + formatCurrency(diffTotal);
+        const isCurr = sc.id === 'curr';
+
+        const tr = document.createElement('tr');
+        tr.className = `border-b border-slate-100 last:border-0 transition-colors ${sc.rowClass}`;
+        tr.innerHTML = `
+          <td class="py-4 px-4 font-bold flex items-center gap-2 ${isCurr ? 'text-blue-900' : 'text-slate-700'}">
+            <div class="w-3 h-3 rounded-full ${sc.badge}"></div> ${sc.name}
+          </td>
+          <td class="py-4 px-3 text-center font-black border-l border-slate-100 text-base ${isCurr ? 'text-blue-700' : ''}">${sc.point.duration}일</td>
+          <td class="py-4 px-3 text-center font-bold text-sm ${diffDaysColor}">${diffDaysStr}</td>
+          <td class="py-4 px-3 text-right text-slate-500 border-l border-slate-100">${formatCurrency(sc.point.direct)}</td>
+          <td class="py-4 px-3 text-right text-slate-500">${formatCurrency(sc.point.indirect)}</td>
+          <td class="py-4 px-3 text-right font-black text-base ${isCurr ? 'text-blue-700 bg-blue-100/30' : 'text-slate-800 bg-slate-100/30'}">${formatCurrency(sc.point.total)}</td>
+          <td class="py-4 px-3 text-right font-black text-sm ${diffTotal > 0 ? 'text-rose-500' : diffTotal < 0 ? 'text-emerald-500' : 'text-slate-400'} border-l border-slate-100">${diffTotalStr}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function updateUI() {
+      const metrics = calculateMetrics(state.tasks);
+
+      setVal('headerContractAmount', formatCurrency(state.contractAmount) + '백만');
+      setVal('headerIndirectPerDay', formatCurrency(metrics.indirectPerDay) + '백만');
+      setVal('reportDailyIndirect', `매일 ${formatCurrency(metrics.indirectPerDay)}백만`);
+      setVal('reportProjectScale', formatCurrency(state.contractAmount) + '백만');
+      setVal('reportIndirectPerDay', formatCurrency(metrics.indirectPerDay) + '백만');
+
+      updateTargetUI();
+      updateComparisonTable(metrics);
+      renderGantt();
+      updateChart();
+
+      const details = document.getElementById('methodologyDetails');
+      if (details) {
+        const effectiveAG = state.agFloors + 1;
+        const fc = state.facilityCheck;
+        details.innerHTML = `
+          <li>- WBS: 지상층(${effectiveAG}층) 반복(골조/외장/벽체/MEP/내부/MEP마감) + TAB·시운전 + 준공/검사</li>
+          <li>- 관계: FS(완료 후 착수) + SS(부분 착수, lag 일수) + lag(고정 일수) 반영</li>
+          <li>- 비작업일 보정: 연간 비작업(${state.annualNonWorkingDays}일) → 작업일수 캘린더 보정계수 적용</li>
+          <li>- 공식 검증치: 기타(${fc?.otherBuilding ?? '--'}일) / 면적·지하(${fc?.commonForm ?? '--'}일)</li>
+          <li>- 동적 CP: 단축 시점마다 CP 재탐지 → 복수 CP면 최소비용 컷으로 단축 작업 세트 선택</li>
+        `;
+      }
+    }
+
+    // ===== Trade-off Chart =====
+    function toggleChartMode() {
+      state.chartMode = state.chartMode === 'delta' ? 'total' : 'delta';
+      const btn = document.getElementById('chartModeBtn');
+      if (btn) {
+        btn.innerHTML = state.chartMode === 'delta'
+          ? '<i class="fa-solid fa-eye-low-beam"></i> <span>변동분만 보기</span>'
+          : '<i class="fa-solid fa-eye"></i> <span>전체 규모 보기</span>';
+      }
+      updateChart();
+    }
+
+    function updateChart() {
+      const canvas = document.getElementById('costCurveChart');
+      if (!canvas) return;
+
+      const ctx = canvas.getContext('2d');
+      const data = state.simulationPoints;
+
+      const basePt = data.find(p => p.duration === state.normalCPM.projectDur);
+      if (!basePt) return;
+
+      const baseSum = basePt.total;
+      const baseDir = basePt.direct;
+      const baseInd = basePt.indirect;
+
+      const prepare = (val, base) => state.chartMode === 'delta' ? (val - base) : val;
+
+      const currentMetrics = calculateMetrics(state.tasks);
+
+      const viewMaxDur = Math.max(
+        state.targetNormalDuration,
+        state.standardDuration,
+        state.optimalPoint?.duration || 0,
+        currentMetrics.duration,
+        state.normalCPM.projectDur
+      );
+      const viewMinDur = Math.min(
+        state.targetNormalDuration,
+        state.standardDuration,
+        state.optimalPoint?.duration || Infinity,
+        currentMetrics.duration,
+        state.normalCPM.projectDur
+      );
+
+      const chartXMin = Math.floor(Math.max(1, viewMinDur - 40) / 10) * 10;
+      const chartXMax = Math.ceil((viewMaxDur + 60) / 10) * 10;
+
+      const visiblePoints = data.filter(d => d.duration >= chartXMin && d.duration <= chartXMax);
+
+      const chartData = {
+        datasets: [
+          {
+            label: '총 공사비',
+            data: visiblePoints.map(p => ({ x: p.duration, y: prepare(p.total, baseSum) })),
+            borderColor: '#2563eb',
+            borderWidth: 4,
+            pointRadius: 0,
+            tension: 0.4,
+            fill: false
+          },
+          {
+            label: '직접비 누계',
+            data: visiblePoints.map(p => ({ x: p.duration, y: prepare(p.direct, baseDir) })),
+            borderColor: 'rgba(244, 63, 94, 0.5)',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            pointRadius: 0,
+            tension: 0.4
+          },
+          {
+            label: '간접비 누계',
+            data: visiblePoints.map(p => ({ x: p.duration, y: prepare(p.indirect, baseInd) })),
+            borderColor: 'rgba(16, 185, 129, 0.5)',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            pointRadius: 0,
+            tension: 0.4
+          }
+        ]
+      };
+
+      if (costChart) costChart.destroy();
+
+      costChart = new Chart(ctx, {
+        type: 'line',
+        data: chartData,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          layout: { padding: { top: 120 } },
+          scales: {
+            x: {
+              type: 'linear',
+              min: chartXMin,
+              max: chartXMax,
+              title: { display: true, text: '공사 기간 (일)', font: { weight: 'bold' } },
+              grid: { display: false },
+              ticks: { stepSize: 10 }
+            },
+            y: {
+              title: {
+                display: true,
+                text: state.chartMode === 'delta' ? '비용 증감 (백만원)' : '총 비용 (백만원)',
+                font: { weight: 'bold' }
+              },
+              ticks: { callback: v => v.toLocaleString() }
+            }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: { mode: 'index', intersect: false },
+            verticalLines: {
+              lines: [
+                { x: state.standardDuration, text: '① 표준공기(공식)', color: '#f59e0b', dash: [4, 4] },
+                { x: state.targetNormalDuration, text: '② 계약공기', color: '#64748b', dash: [4, 4] },
+                { x: state.optimalPoint?.duration || 0, text: '③ 최소비용', color: '#10b981', dash: [] },
+                { x: currentMetrics.duration, text: '④ 현재', color: '#2563eb', dash: [] }
+              ]
+            }
+          }
+        }
+      });
+    }
+
+    // ===== Target Duration Tools =====
+    function validateTargetDays() {
+      const input = document.getElementById('targetDaysInput');
+      if (!input || input.value === '') { updateTargetUI(); return; }
+
+      let val = parseInt(input.value);
+      if (isNaN(val)) { input.value = ''; updateTargetUI(); return; }
+
+      const minPossibleDur = state.simulationPoints[0].duration;
+      const maxPointDur = state.simulationPoints[state.simulationPoints.length - 1].duration;
+
+      const minDiff = minPossibleDur - state.normalCPM.projectDur;
+      const maxDiff = maxPointDur - state.normalCPM.projectDur;
+
+      if (val < minDiff) val = minDiff;
+      if (val > maxDiff) val = maxDiff;
+
+      input.value = val;
+      updateTargetUI();
+    }
+
+    function adjustTargetDays(delta) {
+      const input = document.getElementById('targetDaysInput');
+      if (!input) return;
+
+      let val = parseInt(input.value);
+      if (isNaN(val)) val = 0;
+      val += delta;
+
+      const minPossibleDur = state.simulationPoints[0].duration;
+      const maxPointDur = state.simulationPoints[state.simulationPoints.length - 1].duration;
+
+      const minDiff = minPossibleDur - state.normalCPM.projectDur;
+      const maxDiff = maxPointDur - state.normalCPM.projectDur;
+
+      if (val < minDiff) val = minDiff;
+      if (val > maxDiff) val = maxDiff;
+
+      input.value = val;
+      updateTargetUI();
+    }
+
+    function updateTargetUI() {
+      if (!state.simulationPoints || state.simulationPoints.length === 0) return;
+
+      const minPossibleDur = state.simulationPoints[0].duration;
+      const maxCrashPossible = state.normalCPM.projectDur - minPossibleDur;
+      setVal('maxCrashPossibleDisplay', maxCrashPossible);
+
+      const input = document.getElementById('targetDaysInput');
+      const rawValue = input?.value;
+      const isEmpty = rawValue === '' || rawValue === undefined;
+
+      let diffDaysInput = parseInt(rawValue);
+      if (isNaN(diffDaysInput)) diffDaysInput = 0;
+
+      const normalDur = state.normalCPM.projectDur;
+      let targetDuration = normalDur + diffDaysInput;
+
+      const maxPointDur = state.simulationPoints[state.simulationPoints.length - 1].duration;
+      if (targetDuration < minPossibleDur) targetDuration = minPossibleDur;
+      if (targetDuration > maxPointDur) targetDuration = maxPointDur;
+
+      let diffDaysHtml = '';
+
+      if (isEmpty || isNaN(parseInt(rawValue))) {
+        diffDaysHtml = `<span class="text-slate-500"><i class="fa-solid fa-keyboard mr-1"></i>조정 일수를 입력하세요</span>`;
+        setVal('targetTotalDiff', `<span class="text-slate-500">--</span>`, true);
+      } else {
+        diffDaysHtml = `<span class="text-slate-300 bg-slate-700/50 px-3 py-1 rounded-full text-[11px]">
+          <i class="fa-solid fa-flag-checkered mr-1"></i>목표 공사기간:
+          <strong class="text-blue-300 text-xs">${targetDuration}일</strong>
+        </span>`;
+
+        const targetPoint = state.simulationPoints.find(p => p.duration === targetDuration) ||
+          state.simulationPoints.reduce((prev, curr) =>
+            Math.abs(curr.duration - targetDuration) < Math.abs(prev.duration - targetDuration) ? curr : prev
+          );
+
+        const normalPt = state.simulationPoints.find(p => p.duration === state.normalCPM.projectDur);
+
+        if (targetPoint && normalPt) {
+          const diff = targetPoint.total - normalPt.total;
+          const diffStr = (diff > 0 ? '+' : '') + formatCurrency(diff) + '백만';
+          const color = diff > 0 ? 'text-rose-400' : diff < 0 ? 'text-emerald-400' : 'text-slate-300';
+          setVal('targetTotalDiff', `<span class="${color}">${diffStr}</span>`, true);
+        }
+      }
+
+      setVal('targetDaysDiff', diffDaysHtml, true);
+    }
+
+    function handleSliderChange(id, val) {
+      const task = state.tasks.find(t => t.id === id);
+      if (task) task.currentDur = parseInt(val);
+
+      calculateCurrentCPM();
+      renderSliders();
+      updateUI();
+    }
+
+    function applyTargetDuration() {
+      if (!state.simulationPoints || state.simulationPoints.length === 0) return;
+
+      const input = document.getElementById('targetDaysInput');
+      let diffDays = parseInt(input?.value);
+      if (isNaN(diffDays)) diffDays = -60;
+
+      const targetDuration = state.normalCPM.projectDur + diffDays;
+
+      const pt = state.simulationPoints.find(p => p.duration === targetDuration) ||
+        state.simulationPoints.reduce((prev, curr) =>
+          Math.abs(curr.duration - targetDuration) < Math.abs(prev.duration - targetDuration) ? curr : prev
+        );
+
+      state.tasks = JSON.parse(JSON.stringify(pt.state));
+      calculateCurrentCPM();
+      renderSliders();
+      updateUI();
+    }
+
+    // ===== Gantt Crosshair =====
+    function handleGanttMouseMove(e) {
+      const wrapper = document.getElementById('ganttWrapper');
+      const crosshair = document.getElementById('ganttCrosshair');
+      const label = document.getElementById('ganttCrosshairLabel');
+      if (!wrapper || !crosshair || !label || !state.currentCPM) return;
+
+      const rect = wrapper.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const offsetLeft = 112;
+
+      if (x < offsetLeft || x > rect.width || y < 0 || y > rect.height) {
+        crosshair.style.display = 'none';
+        return;
+      }
+
+      crosshair.style.display = 'block';
+      crosshair.style.transform = `translateX(${x}px)`;
+      label.style.top = `${y}px`;
+
+      const maxDur = Math.max(state.normalCPM.projectDur, state.currentCPM.projectDur);
+      const timelineWidth = rect.width - offsetLeft;
+      const ratio = (x - offsetLeft) / timelineWidth;
+
+      let days = Math.round(ratio * maxDur);
+      if (days < 0) days = 0;
+      if (days > maxDur) days = maxDur;
+
+      label.innerText = `누적 ${days}일`;
+    }
+
+    function handleGanttMouseLeave() {
+      const crosshair = document.getElementById('ganttCrosshair');
+      if (crosshair) crosshair.style.display = 'none';
+    }
+
+    // ===== Distribute / Rebuild =====
+    function distributeTasks() {
+      if (state.projectType === 'office') {
+        state.tasks = buildOfficeWBS();
+      } else {
+        // office 외 타입은 최소한 동작만 하도록 officeWBS를 사용(확장 여지)
+        state.tasks = buildOfficeWBS();
+      }
+
+      state.facilityCheck = computeFacilityChecks();
+      setVal('facilityCheckOther', state.facilityCheck.otherBuilding);
+      setVal('facilityCheckCommon', state.facilityCheck.commonForm);
+
+      state.normalCPM = null;
+      calculateCurrentCPM();
+
+      state.wbsBaseDuration = state.normalCPM.projectDur;
+      setVal('standardDurationValue', state.wbsBaseDuration);
+
+      // 표준공기(공식 검증치)는 commonForm로 사용
+      state.standardDuration = state.facilityCheck.commonForm;
+
+      generateTradeOffData();
+      applyTargetDuration();
+    }
+
+    function updateGlobalState() {
+      state.contractAmount = parseFloat(document.getElementById('contractAmount').value) || 0;
+      state.baseDirectCost = state.contractAmount / 1.37;
+
+      state.targetNormalDuration = parseInt(document.getElementById('targetNormalDuration').value) || 0;
+
+      state.floorArea = parseInt(document.getElementById('floorArea').value) || 0;
+      state.ugFloors = parseInt(document.getElementById('ugFloors').value) || 0;
+      state.agFloors = parseInt(document.getElementById('agFloors').value) || 0;
+
+      state.annualNonWorkingDays = parseInt(document.getElementById('annualNonWorkingDays').value) || 0;
+      state.startAdminDays = parseInt(document.getElementById('startAdminDays').value) || 0;
+      state.endAdminDays = parseInt(document.getElementById('endAdminDays').value) || 0;
+
+      state.demolitionDays = parseInt(document.getElementById('demolitionDays').value) || 0;
+      state.pileWorkDays = parseInt(document.getElementById('pileWorkDays').value) || 0;
+
+      state.projectType = document.getElementById('projectType').value;
+
+      // office WBS input read
+      const readNum = (id, defVal = 0) => {
+        const el = document.getElementById(id);
+        const v = parseFloat(el?.value);
+        return isFinite(v) ? v : defVal;
+      };
+
+      state.officeWbs = {
+        ugFrameWorkDays: readNum('officeUgFrameWorkDays', 31),
+        agFrameWorkDays: readNum('officeAgFrameWorkDays', 12),
+        envelopeWorkDays: readNum('officeEnvelopeWorkDays', 8),
+        partitionWorkDays: readNum('officePartitionWorkDays', 6),
+        mepRoughWorkDays: readNum('officeMepRoughWorkDays', 8),
+        interiorWorkDays: readNum('officeInteriorWorkDays', 10),
+        mepFinishWorkDays: readNum('officeMepFinishWorkDays', 4),
+        commissionWorkDays: readNum('officeCommissionWorkDays', 45),
+        mepStartLagDays: readNum('officeMepStartLagDays', 2),
+        siteStartLagDays: readNum('officeSiteStartLagDays', 15)
+      };
+
+      // UI toggles
+      const officePanel = document.getElementById('officeWbsOptions');
+      const advPanel = document.getElementById('advancedBuildingOptionsContainer');
+      const methodDesc = document.getElementById('methodologyDesc');
+      const methodForm = document.getElementById('methodologyFormula');
+
+      if (state.projectType === 'office') {
+        if (officePanel) officePanel.style.display = 'block';
+        if (advPanel) advPanel.classList.add('hidden');
+        if (methodDesc) methodDesc.innerHTML = `업무시설(기타 건축물) 기준으로 층 반복 WBS를 생성하고, SS/FS/lag 관계를 포함한 동적 CPM 및 복수 CP 단축비용을 반영합니다. (옥탑 1개층 포함)`;
+        if (methodForm) methodForm.innerHTML = `WBS(층 반복) + CPM(SS/FS/lag) + Multi-CP Crashing + 시설물 공식 검증`;
+      } else {
+        if (officePanel) officePanel.style.display = 'none';
+        if (advPanel) advPanel.classList.remove('hidden');
+      }
+
+      distributeTasks();
+    }
+
+    // ===== Onload =====
+    window.onload = () => {
+      const today = new Date().toLocaleDateString('ko-KR');
+      setVal('reportDate', today);
+      setVal('reportDateBadge', today);
+      updateGlobalState();
+    };
+  </script>
+
 </body>
 </html>
