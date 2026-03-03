@@ -25,12 +25,6 @@
       width: 18px; height: 18px; background: #2563eb; cursor: pointer;
       border-radius: 50%; border: 2px solid white;
     }
-    .report-section h3 {
-      border-left: 4px solid #2563eb;
-      padding-left: 1rem;
-      margin-bottom: 1rem;
-      margin-top: 2rem;
-    }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
   </style>
 </head>
@@ -316,7 +310,6 @@
                      class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold" />
             </div>
 
-            <!-- changed: numeric siteFactor -->
             <div class="space-y-1.5">
               <label class="text-[10px] font-bold text-slate-600 italic">현장 난이도(공통 배수)</label>
               <input type="number" id="officeSiteFactor" value="1.00" min="0.70" max="1.60" step="0.01" onchange="updateGlobalState()"
@@ -340,15 +333,15 @@
             <div class="flex items-start justify-between gap-4">
               <div>
                 <div class="text-[11px] font-black text-emerald-700 uppercase tracking-wider flex items-center gap-2">
-                  <i class="fa-solid fa-wand-magic-sparkles"></i> 자동 보정(추천) - 가정값 캘리브레이션
+                  <i class="fa-solid fa-wand-magic-sparkles"></i> 자동 맞춤(추천) - 계약공기/표준공기 기준 가정값 캘리브레이션
                 </div>
                 <p class="text-[11px] text-slate-500 font-bold mt-2">
-                  목표(계약공기/표준공기)에 맞도록 <span class="text-slate-800">Baseline(WBS+CPM)</span>이 근접하도록
+                  목표(계약공기/표준공기)에 맞도록 <span class="text-slate-800">공정표(WBS+CPM)</span>가 근접하도록
                   <span class="text-slate-800">현장배수/공종 작업일</span>을 제안합니다.
                 </p>
               </div>
               <div class="text-right">
-                <div class="text-[11px] text-slate-400 font-black">현재 Baseline</div>
+                <div class="text-[11px] text-slate-400 font-black">현재 공정표(계약맞춤)</div>
                 <div class="text-xl font-black text-slate-900"><span id="calibCurrentBaseline">--</span></div>
               </div>
             </div>
@@ -363,7 +356,7 @@
                 <div class="text-lg font-black text-amber-700"><span id="calibTargetStandard">--</span></div>
               </div>
               <div class="bg-emerald-50/40 border border-emerald-100 rounded-xl p-3">
-                <div class="text-[10px] font-black text-emerald-700 uppercase">추천 적용 시 Baseline</div>
+                <div class="text-[10px] font-black text-emerald-700 uppercase">추천 적용 시 공정표</div>
                 <div class="text-lg font-black text-emerald-700"><span id="calibPredBaseline">--</span></div>
                 <div class="text-[11px] font-bold text-slate-500">오차: <span id="calibPredDiff">--</span></div>
               </div>
@@ -435,7 +428,7 @@
             일일 유지비: <span class="text-slate-900 font-bold" id="headerIndirectPerDay">--</span>/일
           </div>
 
-          <div class="bg-amber-50 px-3 py-2 rounded-lg text-amber-800 border border-amber-100">
+          <div class="bg-amber-50 px-3 py-2 rounded-lg text-amber-800 border border-amber-100" id="baselineChip">
             Baseline(적정 공정계획): <span class="font-black" id="wbsBaseDurationValue">--</span>일
           </div>
 
@@ -468,9 +461,9 @@
         </div>
 
         <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5">
-          <div class="text-[11px] font-black text-slate-700 uppercase">계약공기</div>
+          <div class="text-[11px] font-black text-slate-700 uppercase">계약공기(기준)</div>
           <div class="mt-1 text-2xl font-black text-slate-800"><span id="dashContractDuration">--</span><span class="text-sm font-bold text-slate-400 ml-1">일</span></div>
-          <div class="text-[11px] text-slate-500 mt-1">계약 현황 입력값</div>
+          <div class="text-[11px] text-slate-500 mt-1">검토 기준 공기</div>
         </div>
 
         <div class="bg-emerald-50/40 border border-emerald-100 rounded-2xl p-5">
@@ -509,7 +502,7 @@
                   <i class="fa-solid fa-clock"></i> 공사기간 조정
                 </h3>
                 <p class="text-xs text-slate-400 mb-6 flex justify-between items-center">
-                  <span>Baseline 대비 조정 일수 (+연장 / -단축)</span>
+                  <span>계약공기 대비 조정 일수 (+연장 / -단축)</span>
                   <span class="bg-slate-800 px-2 py-1 rounded text-slate-300 text-[10px]">최대 <span id="maxCrashPossibleDisplay" class="font-bold text-white">--</span>일 단축 가능</span>
                 </p>
 
@@ -528,7 +521,7 @@
                 </div>
 
                 <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 mb-6 flex justify-between items-center">
-                  <span class="text-xs font-bold text-slate-400">예측 비용 증감(Baseline 대비)</span>
+                  <span class="text-xs font-bold text-slate-400">예측 비용 증감(계약공기 대비)</span>
                   <div id="targetTotalDiff" class="text-xl font-black mt-0.5">--</div>
                 </div>
               </div>
@@ -539,7 +532,7 @@
               </button>
 
               <p class="text-[11px] text-slate-400 mt-3">
-                ※ 입력을 비우면 <span class="font-black text-slate-200">계약공기(현재)</span>로 표시됩니다. (공정표 반영 기준)
+                ※ 입력을 비우면 <span class="font-black text-slate-200">계약공기(기준)</span>로 표시됩니다. (공정표 반영 기준)
               </p>
             </div>
           </div>
@@ -548,7 +541,7 @@
       </div>
     </section>
 
-    <!-- Section 3: Task Control (Grouped) -->
+    <!-- Section 3: Task Control -->
     <section class="bg-white p-6 md:p-8 rounded-[3rem] shadow-sm border border-slate-200">
       <div class="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
         <i class="fa-solid fa-sliders text-blue-600 text-xl"></i>
@@ -563,7 +556,7 @@
       <div id="taskSlidersContainer" class="space-y-4"></div>
     </section>
 
-    <!-- Section 4: Visual -->
+    <!-- Section 4 -->
     <div class="grid grid-cols-1 gap-8">
       <!-- Gantt -->
       <div class="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-200">
@@ -572,7 +565,7 @@
             <h2 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
               <i class="fa-solid fa-align-left text-blue-600"></i> 단축 전/후 공정 비교 (Gantt)
             </h2>
-            <p class="text-slate-500 text-xs mt-1 font-medium italic">Baseline(Gray) vs Current(Colored) / 묶음 보기에서는 층 라벨을 바 상단에 표기</p>
+            <p class="text-slate-500 text-xs mt-1 font-medium italic">Baseline(Gray) vs Current(Colored)</p>
           </div>
 
           <div class="flex flex-wrap gap-2 items-center">
@@ -620,7 +613,7 @@
 
         <div class="flex flex-wrap gap-4 mb-6 text-xs font-bold bg-slate-50 p-4 rounded-2xl border border-slate-100">
           <span class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-amber-500"></div> 표준공기(참고)</span>
-          <span class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-slate-500"></div> 계약공기</span>
+          <span class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-slate-500"></div> 계약공기(기준)</span>
           <span class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-emerald-500"></div> 최소비용(MC)</span>
           <span class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-blue-600"></div> <span id="legendCurrentLabel">현재(계약/조정)</span></span>
         </div>
@@ -631,7 +624,7 @@
       </div>
     </div>
 
-    <!-- Report (요약만 유지) -->
+    <!-- Report -->
     <div id="report" class="bg-white p-10 md:p-16 rounded-[4rem] shadow-sm border border-slate-200 space-y-10">
       <div class="border-b border-slate-100 pb-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div class="space-y-2">
@@ -654,23 +647,28 @@
           <div class="text-[11px] font-black text-slate-500 uppercase">표준공기(참고)</div>
           <div class="text-2xl font-black text-amber-600 mt-1"><span id="reportStandardDuration">--</span><span class="text-sm font-bold text-slate-400 ml-1">일</span></div>
         </div>
-        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5">
+
+        <!-- baseline card hidden -->
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5" id="baselineReportCard">
           <div class="text-[11px] font-black text-slate-500 uppercase">Baseline(적정)</div>
           <div class="text-2xl font-black text-slate-800 mt-1"><span id="reportBaselineDuration">--</span><span class="text-sm font-bold text-slate-400 ml-1">일</span></div>
         </div>
+
         <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5">
-          <div class="text-[11px] font-black text-slate-500 uppercase">계약공기</div>
+          <div class="text-[11px] font-black text-slate-500 uppercase">계약공기(기준)</div>
           <div class="text-2xl font-black text-slate-600 mt-1"><span id="reportContractDuration">--</span><span class="text-sm font-bold text-slate-400 ml-1">일</span></div>
         </div>
+
         <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5">
           <div class="text-[11px] font-black text-slate-500 uppercase">최소비용(MC)</div>
           <div class="text-2xl font-black text-emerald-600 mt-1"><span id="reportOptimalDuration">--</span><span class="text-sm font-bold text-slate-400 ml-1">일</span></div>
           <div class="text-[11px] text-slate-500 mt-2" id="reportOptimalCheck">검증: --</div>
         </div>
+
         <div class="bg-blue-50 border border-blue-200 rounded-2xl p-5">
           <div class="text-[11px] font-black text-blue-700 uppercase" id="reportCurrentTitle">현재(계약/조정)</div>
           <div class="text-2xl font-black text-blue-700 mt-1"><span id="reportCurrentDuration">--</span><span class="text-sm font-bold text-blue-400 ml-1">일</span></div>
-          <div class="text-[11px] text-blue-700/70 mt-1">Δ비용: <span id="reportCurrentDeltaCost">--</span></div>
+          <div class="text-[11px] text-blue-700/70 mt-1">Δ비용(계약기준): <span id="reportCurrentDeltaCost">--</span></div>
         </div>
       </div>
 
@@ -705,13 +703,17 @@
     const verticalLinePlugin = {
       id: 'verticalLines',
       afterDraw: (chart, args, options) => {
-        if (!options || !options.lines || !Array.isArray(options.lines)) return;
+        if (!chart || !options || !options.lines || !Array.isArray(options.lines)) return;
         const ctx = chart.ctx;
-        const xAxis = chart.scales.x;
-        const yAxis = chart.scales.y;
+        const xAxis = chart.scales?.x;
+        const yAxis = chart.scales?.y;
+        if (!ctx || !xAxis || !yAxis) return;
 
         options.lines.forEach((line, index) => {
+          if (line == null || !isFinite(line.x)) return;
+
           const x = xAxis.getPixelForValue(line.x);
+          if (!isFinite(x)) return;
           if (x < xAxis.left - 5 || x > xAxis.right + 5) return;
 
           const yOffset = yAxis.top + (index * 22);
@@ -748,7 +750,7 @@
         });
       }
     };
-    Chart.register(verticalLinePlugin);
+    if (window.Chart) Chart.register(verticalLinePlugin);
 
     // ===== Global State =====
     let state = {
@@ -804,12 +806,7 @@
       sliderCollapsed: {}
     };
 
-    // ===== Calibration state =====
-    let calib = {
-      recommendation: null,
-      undoSnapshot: null
-    };
-
+    let calib = { recommendation: null, undoSnapshot: null };
     let costChart = null;
 
     // ===== Presets =====
@@ -860,28 +857,28 @@
       updateGlobalState();
     }
 
-    // ===== Target mode helpers =====
+    // ===== Contract basis =====
     function isContractMode() {
       const input = document.getElementById('targetDaysInput');
       const raw = input?.value;
       return raw === '' || raw === undefined || raw === null;
     }
+    function getReviewBasisDuration() { return Math.max(1, Math.round(state.targetNormalDuration || 1)); }
+    function getIndirectPerDayBasisDuration() { return Math.max(1, getReviewBasisDuration()); }
 
-    function getCurrentScenarioDisplay() {
-      if (isContractMode()) {
-        const pt = costAtDuration(state.targetNormalDuration);
-        if (pt) return { duration: state.targetNormalDuration, direct: pt.direct, indirect: pt.indirect, total: pt.total, mode: 'contract' };
-      }
-      const m = calculateMetrics(state.tasks);
-      return { ...m, mode: 'adjusted' };
+    function hideBaselineUI() {
+      const chip = document.getElementById('baselineChip');
+      if (chip) chip.style.display = 'none';
+      const card = document.getElementById('baselineReportCard');
+      if (card) card.style.display = 'none';
     }
 
     // ===== Facility Checks =====
     function computeFacilityChecks() {
-      const C = Math.max(0.0001, state.contractAmount / 100);   // 백만 → 억원
-      const G = Math.max(0, state.agFloors + 1);                // 옥탑 포함
+      const C = Math.max(0.0001, state.contractAmount / 100);
+      const G = Math.max(0, state.agFloors + 1);
       const B = Math.max(0, state.ugFloors);
-      const A = Math.max(0.0001, state.floorArea / 100);        // ㎡ → 100㎡ 단위
+      const A = Math.max(0.0001, state.floorArea / 100);
       const D = Math.max(0, state.startAdminDays);
       const E = Math.max(0, state.endAdminDays);
 
@@ -895,7 +892,6 @@
       };
     }
 
-    // ===== Cost Slope =====
     function getCostSlope(task) {
       if (!task) return 0;
       if (task.normalDur === task.crashDur) return 0;
@@ -906,10 +902,9 @@
       return isFinite(slope) && slope > 0 ? slope : 0;
     }
 
-    // ===== Bromilow (civil/plant) =====
     function bromilowDuration(baseDirectCost, K, B) {
       const C = Math.max(0.0001, baseDirectCost);
-      const C_uk = Math.max(0.0001, C / 100); // 억 단위 스케일
+      const C_uk = Math.max(0.0001, C / 100);
       return Math.max(10, Math.round(K * Math.pow(C_uk, B)));
     }
 
@@ -945,7 +940,6 @@
       const pileStartLag = lagScale(opt.pileStartLagDays ?? 5);
       const siteStartLag = lagScale(opt.siteStartLagDays ?? 15);
 
-      // 비용 배분(참고용) - 합계 1.00
       const ratios = {
         demolition: 0.02,
         tempWorks: 0.02,
@@ -981,7 +975,6 @@
       };
 
       let id = 1;
-
       const idStart = id++;
       makeTask(idStart, '착공 및 준비기간', Math.max(1, state.startAdminDays), 1.0, 0, 1.0, []);
 
@@ -1101,7 +1094,6 @@
       return tasks;
     }
 
-    // ===== Civil/Plant single WBS (Bromilow) =====
     function buildBromilowWBS(K, B) {
       const tasks = [];
       const make = (id, name, dur, deps = []) => {
@@ -1154,7 +1146,6 @@
       const ids = Object.keys(map).map(Number);
       const n = ids.length;
 
-      // Forward relaxation (longest path)
       for (let iter = 0; iter < n - 1; iter++) {
         let updated = false;
         for (const e of edges) {
@@ -1171,7 +1162,6 @@
 
       ids.forEach(id => { map[id].ls = projectDur - map[id].currentDur; });
 
-      // Backward relaxation
       for (let iter = 0; iter < n - 1; iter++) {
         let updated = false;
         for (const e of edges) {
@@ -1198,7 +1188,7 @@
       if (!state.normalCPM) state.normalCPM = JSON.parse(JSON.stringify(state.currentCPM));
     }
 
-    // ===== Min-Cut Crashing (Dinic) =====
+    // ===== Dinic =====
     function dinicMaxFlow(N, s, t, addEdge) {
       const g = Array.from({ length: N }, () => []);
       const INF = 10 ** 15;
@@ -1338,7 +1328,6 @@
       return picked.length ? picked : null;
     }
 
-    // ===== Points utils =====
     function nearestPointByDuration(duration) {
       const pts = state.simulationPoints;
       if (!pts || pts.length === 0) return null;
@@ -1384,7 +1373,9 @@
       return best;
     }
 
-    // ===== U-Curve data generation =====
+    function getContractPoint() { return costAtDuration(getReviewBasisDuration()); }
+
+    // ===== U-Curve =====
     function generateTradeOffData() {
       let simTasks = JSON.parse(JSON.stringify(state.tasks)).map(t => ({ ...t, currentDur: t.normalDur }));
       let points = [];
@@ -1394,9 +1385,8 @@
       const baseCPM = calculateCPM(simTasks);
 
       const indirectOverride = parseFloat(document.getElementById('indirectPerDayOverride')?.value || '0') || 0;
-      const indirectPerDay = (indirectOverride > 0)
-        ? indirectOverride
-        : ((state.baseDirectCost * state.overheadRatio) / Math.max(1, baseCPM.projectDur));
+      const denom = getIndirectPerDayBasisDuration();
+      const indirectPerDay = (indirectOverride > 0) ? indirectOverride : ((state.baseDirectCost * state.overheadRatio) / denom);
 
       const record = (taskList, isDelay = false, overrideDur = null) => {
         const cpm = calculateCPM(taskList);
@@ -1413,21 +1403,14 @@
         const totalIndirect = dur * indirectPerDay;
         const total = totalDirect + totalIndirect;
 
-        const pt = {
-          duration: dur,
-          direct: totalDirect,
-          indirect: totalIndirect,
-          total,
-          state: JSON.parse(JSON.stringify(taskList))
-        };
-
+        const pt = { duration: dur, direct: totalDirect, indirect: totalIndirect, total, state: JSON.parse(JSON.stringify(taskList)) };
         points.push(pt);
         if (!isDelay && total < minTotalCost) { minTotalCost = total; optimal = pt; }
       };
 
       const maxRight = Math.max(
         baseCPM.projectDur,
-        state.targetNormalDuration,
+        getReviewBasisDuration(),
         state.facilityCheck?.otherBuilding || 0,
         state.facilityCheck?.commonForm || 0
       ) + 60;
@@ -1470,7 +1453,6 @@
       if (best) state.optimalPoint = best;
     }
 
-    // ===== MC verification =====
     function verifyMCPoint() {
       if (!state.simulationPoints || state.simulationPoints.length === 0) return { ok: false, msg: '포인트 없음' };
       const best = findArgMinPoint(state.simulationPoints);
@@ -1485,14 +1467,14 @@
       return { ok: true, msg: `OK (MC=${best.duration}일, argmin 일치)` };
     }
 
-    // ===== Metrics =====
     function calculateMetrics(taskList) {
       const cpm = calculateCPM(taskList);
 
       const indirectOverride = parseFloat(document.getElementById('indirectPerDayOverride')?.value || '0') || 0;
+      const denom = getIndirectPerDayBasisDuration();
       const indirectPerDay = (indirectOverride > 0)
         ? indirectOverride
-        : ((state.baseDirectCost * state.overheadRatio) / Math.max(1, state.normalCPM?.projectDur || cpm.projectDur));
+        : ((state.baseDirectCost * state.overheadRatio) / denom);
 
       let addDirect = 0;
       taskList.forEach(t => { if (t.normalDur > t.currentDur) addDirect += (t.normalDur - t.currentDur) * getCostSlope(t); });
@@ -1500,14 +1482,63 @@
       const dir = state.baseDirectCost + addDirect;
       const ind = cpm.projectDur * indirectPerDay;
 
-      return { duration: cpm.projectDur, direct: dir, indirect: ind, total: dir + ind, indirectPerDay, indirectMode: (indirectOverride > 0 ? '직접입력' : '자동(비율/기간)') };
+      return { duration: cpm.projectDur, direct: dir, indirect: ind, total: dir + ind, indirectPerDay };
     }
 
-    // ===== Dashboard KPI update =====
     function updateDashboardKpis() {
       setVal('dashStandardDuration', state.standardDuration ?? '--');
-      setVal('dashContractDuration', state.targetNormalDuration ?? '--');
+      setVal('dashContractDuration', getReviewBasisDuration() ?? '--');
       setVal('dashOptimalDuration', state.optimalPoint?.duration ?? '--');
+    }
+
+    function getCurrentScenarioDisplay() {
+      if (isContractMode()) {
+        const d = getReviewBasisDuration();
+        const pt = costAtDuration(d);
+        if (pt) return { duration: d, direct: pt.direct, indirect: pt.indirect, total: pt.total, mode: 'contract' };
+      }
+      const m = calculateMetrics(state.tasks);
+      return { ...m, mode: 'adjusted' };
+    }
+
+    // ===== buffer =====
+    function withBufferToTarget(taskState, targetDuration) {
+      const list = JSON.parse(JSON.stringify(taskState || []));
+      if (!list.length) return list;
+
+      const cpm = calculateCPM(list);
+      const curDur = cpm.projectDur;
+      const target = Math.max(1, Math.round(targetDuration || curDur));
+      if (target <= curDur) return list;
+
+      const extra = target - curDur;
+      const maxId = Math.max(...list.map(t => t.id));
+
+      let endIds = cpm.nodes
+        .filter(n => (n.successors?.length || 0) === 0)
+        .map(n => n.id);
+
+      if (!endIds.length) {
+        endIds = cpm.nodes
+          .filter(n => Math.abs(n.ef - curDur) <= 1e-6)
+          .map(n => n.id);
+      }
+      if (!endIds.length) endIds = [list[list.length - 1].id];
+
+      const deps = endIds.map(id => ({ pred: id, type: 'FS', lag: 0 }));
+
+      list.push({
+        id: maxId + 1,
+        name: '여유기간(계약맞춤)',
+        deps,
+        normalDur: extra,
+        currentDur: extra,
+        crashDur: extra,
+        normalCost: 0,
+        crashCost: 0
+      });
+
+      return list;
     }
 
     // ===== Target UI =====
@@ -1523,11 +1554,12 @@
       let val = parseInt(input.value);
       if (isNaN(val)) { input.value = ''; updateTargetUI(); return; }
 
-      const minPossibleDur = state.simulationPoints[0].duration;
-      const maxPointDur = state.simulationPoints[state.simulationPoints.length - 1].duration;
+      const minPossibleDur = state.simulationPoints?.[0]?.duration ?? getReviewBasisDuration();
+      const maxPointDur = state.simulationPoints?.[state.simulationPoints.length - 1]?.duration ?? getReviewBasisDuration();
 
-      const minDiff = minPossibleDur - state.normalCPM.projectDur;
-      const maxDiff = maxPointDur - state.normalCPM.projectDur;
+      const contractDur = getReviewBasisDuration();
+      const minDiff = minPossibleDur - contractDur;
+      const maxDiff = maxPointDur - contractDur;
 
       if (val < minDiff) val = minDiff;
       if (val > maxDiff) val = maxDiff;
@@ -1545,11 +1577,12 @@
 
       val += delta;
 
-      const minPossibleDur = state.simulationPoints[0].duration;
-      const maxPointDur = state.simulationPoints[state.simulationPoints.length - 1].duration;
+      const minPossibleDur = state.simulationPoints?.[0]?.duration ?? getReviewBasisDuration();
+      const maxPointDur = state.simulationPoints?.[state.simulationPoints.length - 1]?.duration ?? getReviewBasisDuration();
 
-      const minDiff = minPossibleDur - state.normalCPM.projectDur;
-      const maxDiff = maxPointDur - state.normalCPM.projectDur;
+      const contractDur = getReviewBasisDuration();
+      const minDiff = minPossibleDur - contractDur;
+      const maxDiff = maxPointDur - contractDur;
 
       if (val < minDiff) val = minDiff;
       if (val > maxDiff) val = maxDiff;
@@ -1562,11 +1595,13 @@
       if (!state.simulationPoints || state.simulationPoints.length === 0) return;
 
       const minPossibleDur = state.simulationPoints[0].duration;
-      const maxCrashPossible = state.normalCPM.projectDur - minPossibleDur;
+      const contractDur = getReviewBasisDuration();
+
+      const maxCrashPossible = Math.max(0, contractDur - minPossibleDur);
       setVal('maxCrashPossibleDisplay', maxCrashPossible);
 
-      const baselineDur = state.normalCPM.projectDur;
-      const contractDur = state.targetNormalDuration;
+      const contractPt = getContractPoint();
+      if (!contractPt) return;
 
       if (isContractMode()) {
         setVal(
@@ -1577,26 +1612,17 @@
           </span>`,
           true
         );
-
-        const contractPt = costAtDuration(contractDur);
-        const basePt = costAtDuration(baselineDur);
-        if (contractPt && basePt) {
-          const diff = contractPt.total - basePt.total;
-          const diffStr = (diff > 0 ? '+' : '') + formatCurrency(diff) + '백만';
-          const color = diff > 0 ? 'text-rose-400' : diff < 0 ? 'text-emerald-400' : 'text-slate-300';
-          setVal('targetTotalDiff', `<span class="${color}">${diffStr}</span>`, true);
-        } else {
-          setVal('targetTotalDiff', `<span class="text-slate-500">--</span>`, true);
-        }
+        setVal('targetTotalDiff', `<span class="text-slate-300">0</span>`, true);
         return;
       }
 
       const input = document.getElementById('targetDaysInput');
       const rawValue = input?.value;
+
       let diffDaysInput = parseInt(rawValue);
       if (isNaN(diffDaysInput)) diffDaysInput = 0;
 
-      let targetDuration = baselineDur + diffDaysInput;
+      let targetDuration = contractDur + diffDaysInput;
       const maxPointDur = state.simulationPoints[state.simulationPoints.length - 1].duration;
       if (targetDuration < minPossibleDur) targetDuration = minPossibleDur;
       if (targetDuration > maxPointDur) targetDuration = maxPointDur;
@@ -1606,14 +1632,14 @@
         `<span class="text-slate-300 bg-slate-700/50 px-3 py-1 rounded-full text-[11px]">
           <i class="fa-solid fa-flag-checkered mr-1"></i>목표 공사기간:
           <strong class="text-blue-300 text-xs">${Math.round(targetDuration)}일</strong>
+          <span class="text-slate-400 ml-2">(계약 ${Math.round(contractDur)}일 대비 ${diffDaysInput > 0 ? '+' : ''}${diffDaysInput}일)</span>
         </span>`,
         true
       );
 
       const targetPt = costAtDuration(targetDuration);
-      const basePt = costAtDuration(baselineDur);
-      if (targetPt && basePt) {
-        const diff = targetPt.total - basePt.total;
+      if (targetPt) {
+        const diff = targetPt.total - contractPt.total;
         const diffStr = (diff > 0 ? '+' : '') + formatCurrency(diff) + '백만';
         const color = diff > 0 ? 'text-rose-400' : diff < 0 ? 'text-emerald-400' : 'text-slate-300';
         setVal('targetTotalDiff', `<span class="${color}">${diffStr}</span>`, true);
@@ -1625,31 +1651,30 @@
     function applyTargetDuration() {
       if (!state.simulationPoints || state.simulationPoints.length === 0) return;
 
-      const baselineDur = state.normalCPM.projectDur;
+      const contractDur = getReviewBasisDuration();
 
-      let targetDuration = baselineDur;
-      if (isContractMode()) {
-        targetDuration = state.targetNormalDuration;
-      } else {
+      let targetDuration = contractDur;
+      if (!isContractMode()) {
         const input = document.getElementById('targetDaysInput');
         let diffDays = parseInt(input?.value);
         if (isNaN(diffDays)) diffDays = 0;
-        targetDuration = baselineDur + diffDays;
+        targetDuration = contractDur + diffDays;
       }
 
       const pt = nearestPointByDuration(targetDuration);
       if (pt && pt.state) {
-        state.tasks = JSON.parse(JSON.stringify(pt.state));
+        const adjusted = withBufferToTarget(pt.state, targetDuration);
+        state.tasks = JSON.parse(JSON.stringify(adjusted));
         calculateCurrentCPM();
         renderSliders();
       }
       updateUI();
     }
 
-    // ===== Grouping helpers for sliders/gantt =====
+    // ===== Grouping helpers =====
     function parseFloorLabel(name) {
-      const m = name.match(/^(.*?)(?:\sF(\d+))\s*(?:\(([^)]*)\))?\s*$/);
-      if (!m) return { base: name.trim(), floor: null, floorLabel: '' };
+      const m = String(name || '').match(/^(.*?)(?:\sF(\d+))\s*(?:\(([^)]*)\))?\s*$/);
+      if (!m) return { base: String(name || '').trim(), floor: null, floorLabel: '' };
       const base = (m[1] || '').trim();
       const floor = parseInt(m[2], 10);
       const floorLabel = `F${m[2]}`;
@@ -1658,14 +1683,14 @@
     function extractPositionLabel(name) {
       const f = parseFloorLabel(name);
       if (f.floorLabel) return f.floorLabel;
-      const b = name.match(/\(B(\d+)\)|\bB(\d+)\b/i);
+      const b = String(name || '').match(/\(B(\d+)\)|\bB(\d+)\b/i);
       if (b) return `B${b[1] || b[2]}`;
       if (/옥탑|PH|펜트/i.test(name)) return 'PH';
-      if (/가설|흙막이|토공|기초|파일|부대토목|조경|준공|시운전|성능검증|착공|준비/i.test(name)) return '전체';
+      if (/가설|흙막이|토공|기초|파일|부대토목|조경|준공|시운전|성능검증|착공|준비|여유/i.test(name)) return '전체';
       return '';
     }
     function normalizeTradeKey(name) {
-      return name.replace(/\sF\d+\s*$/, '').replace(/\s*\(별도\)\s*$/, '').trim();
+      return String(name || '').replace(/\sF\d+\s*$/, '').replace(/\s*\(별도\)\s*$/, '').trim();
     }
     function assignTracksByOverlap(segments) {
       const segs = [...segments].sort((a, b) => (a.cStart - b.cStart) || (a.cEnd - b.cEnd));
@@ -1688,8 +1713,10 @@
       return { segments: segs, trackCount: trackEnds.length };
     }
 
-    // ===== Sliders (Grouped) =====
+    // ===== Sliders =====
     function buildSliderGroups() {
+      if (!state.currentCPM?.nodes) return [];
+
       const nodeById = {};
       state.currentCPM.nodes.forEach(n => nodeById[n.id] = n);
 
@@ -1894,7 +1921,7 @@
       });
     }
 
-    // ===== Gantt (간단 버전: 상세는 생략) =====
+    // ===== Gantt =====
     function toggleGanttMode() {
       state.ganttMode = (state.ganttMode === 'grouped') ? 'detail' : 'grouped';
       const btn = document.getElementById('ganttModeBtn');
@@ -1903,6 +1930,8 @@
     }
 
     function buildGanttLanes() {
+      if (!state.normalCPM?.nodes || !state.currentCPM?.nodes) return [];
+
       const normalNodes = {};
       const currentNodes = {};
       state.normalCPM.nodes.forEach(n => (normalNodes[n.id] = n));
@@ -2064,32 +2093,31 @@
       if (crosshair) crosshair.style.display = 'none';
     }
 
-    // ===== Comparison Table =====
+    // ===== Comparison Table (basis = contract) =====
     function updateComparisonTable() {
-      const baselineDur = state.normalCPM.projectDur;
-      const baselinePt = costAtDuration(baselineDur);
-      if (!baselinePt) return;
+      const contractDur = getReviewBasisDuration();
+      const contractPt = getContractPoint();
+      if (!contractPt) return;
 
       const stdPt = costAtDuration(state.standardDuration);
-      const conPt = costAtDuration(state.targetNormalDuration);
       const optPt = state.optimalPoint ? { ...state.optimalPoint, duration: state.optimalPoint.duration } : null;
-
       const currentDisplay = getCurrentScenarioDisplay();
 
       const scenarios = [];
       if (stdPt) scenarios.push({ id: 'std', name: '표준공기(참고)', point: stdPt, badge: 'bg-amber-500', rowClass: 'bg-amber-50/40' });
 
-      if (isContractMode()) {
-        if (conPt) scenarios.push({ id: 'currcon', name: '계약공기(현재)', point: { ...conPt, duration: state.targetNormalDuration }, badge: 'bg-blue-600', rowClass: 'bg-blue-50/50 border-l-4 border-blue-400' });
-      } else {
-        if (conPt) scenarios.push({ id: 'con', name: '계약공기', point: conPt, badge: 'bg-slate-500', rowClass: 'bg-slate-50/60' });
-      }
+      scenarios.push({
+        id: 'contract',
+        name: '계약공기(기준)',
+        point: { ...contractPt, duration: contractDur },
+        badge: 'bg-slate-500',
+        rowClass: 'bg-slate-50/60'
+      });
 
-      scenarios.push({ id: 'base', name: 'Baseline(적정 공정계획)', point: baselinePt, badge: 'bg-slate-400', rowClass: 'bg-white' });
       if (optPt) scenarios.push({ id: 'opt', name: '최소비용(MC)', point: optPt, badge: 'bg-emerald-500', rowClass: 'bg-emerald-50/40' });
 
       if (!isContractMode()) {
-        const adjDiff = Math.round(currentDisplay.duration - baselinePt.duration);
+        const adjDiff = Math.round(currentDisplay.duration - contractDur);
         let adjName = '공사기간조정';
         if (adjDiff < 0) adjName = `공사기간조정(단축 ${Math.abs(adjDiff)}일)`;
         else if (adjDiff > 0) adjName = `공사기간조정(연장 +${adjDiff}일)`;
@@ -2104,14 +2132,14 @@
       tbody.innerHTML = '';
 
       scenarios.forEach(sc => {
-        const diffDays = Math.round(sc.point.duration - baselinePt.duration);
-        const diffTotal = sc.point.total - baselinePt.total;
+        const diffDays = Math.round(sc.point.duration - contractDur);
+        const diffTotal = sc.point.total - contractPt.total;
 
         const diffDaysStr = diffDays > 0 ? `+${diffDays}일` : diffDays < 0 ? `${diffDays}일` : '-';
         const diffDaysColor = diffDays > 0 ? 'text-rose-500' : diffDays < 0 ? 'text-blue-600' : 'text-slate-400';
 
         const diffTotalStr = (diffTotal > 0 ? '+' : '') + formatCurrency(diffTotal);
-        const isHighlight = (sc.id === 'adj' || sc.id === 'currcon');
+        const isHighlight = (sc.id === 'adj');
 
         const tr = document.createElement('tr');
         tr.className = `border-b border-slate-100 last:border-0 transition-colors ${sc.rowClass}`;
@@ -2144,38 +2172,26 @@
 
     function updateChart() {
       const canvas = document.getElementById('costCurveChart');
-      if (!canvas) return;
+      if (!canvas || !window.Chart) return;
 
       const ctx = canvas.getContext('2d');
       const data = state.simulationPoints;
 
-      const basePt = costAtDuration(state.normalCPM.projectDur);
-      if (!basePt) return;
+      const contractPt = getContractPoint();
+      if (!contractPt) return;
 
-      const baseSum = basePt.total;
-      const baseDir = basePt.direct;
-      const baseInd = basePt.indirect;
+      const baseSum = contractPt.total;
+      const baseDir = contractPt.direct;
+      const baseInd = contractPt.indirect;
 
       const prepare = (val, base) => state.chartMode === 'delta' ? (val - base) : val;
 
       const currentDisplay = getCurrentScenarioDisplay();
       const currentX = currentDisplay.duration;
-      const currentLabel = isContractMode() ? '④ 계약공기(현재)' : '④ 공사기간조정';
+      const currentLabel = isContractMode() ? '④ 현재(=계약공기)' : '④ 공사기간조정';
 
-      const viewMaxDur = Math.max(
-        state.targetNormalDuration,
-        state.standardDuration,
-        state.optimalPoint?.duration || 0,
-        currentX,
-        state.normalCPM.projectDur
-      );
-      const viewMinDur = Math.min(
-        state.targetNormalDuration,
-        state.standardDuration,
-        state.optimalPoint?.duration || Infinity,
-        currentX,
-        state.normalCPM.projectDur
-      );
+      const viewMaxDur = Math.max(getReviewBasisDuration(), state.standardDuration, state.optimalPoint?.duration || 0, currentX);
+      const viewMinDur = Math.min(getReviewBasisDuration(), state.standardDuration, state.optimalPoint?.duration || Infinity, currentX);
 
       const chartXMin = Math.floor(Math.max(1, viewMinDur - 40) / 10) * 10;
       const chartXMax = Math.ceil((viewMaxDur + 60) / 10) * 10;
@@ -2200,7 +2216,7 @@
           layout: { padding: { top: 120 } },
           scales: {
             x: { type: 'linear', min: chartXMin, max: chartXMax, title: { display: true, text: '공사 기간 (일)', font: { weight: 'bold' } }, grid: { display: false }, ticks: { stepSize: 10 } },
-            y: { title: { display: true, text: state.chartMode === 'delta' ? '비용 증감 (백만원)' : '총 비용 (백만원)', font: { weight: 'bold' } }, ticks: { callback: v => v.toLocaleString() } }
+            y: { title: { display: true, text: state.chartMode === 'delta' ? '비용 증감 (계약공기 대비, 백만원)' : '총 비용 (백만원)', font: { weight: 'bold' } }, ticks: { callback: v => v.toLocaleString() } }
           },
           plugins: {
             legend: { display: false },
@@ -2208,8 +2224,8 @@
             verticalLines: {
               lines: [
                 { x: state.standardDuration, text: '① 표준공기(참고)', color: '#f59e0b', dash: [4, 4] },
-                { x: state.targetNormalDuration, text: '② 계약공기', color: '#64748b', dash: [4, 4] },
-                { x: state.optimalPoint?.duration || 0, text: '③ 최소비용', color: '#10b981', dash: [] },
+                { x: getReviewBasisDuration(), text: '② 계약공기(기준)', color: '#64748b', dash: [4, 4] },
+                { x: state.optimalPoint?.duration ?? NaN, text: '③ 최소비용', color: '#10b981', dash: [] },
                 { x: currentX, text: currentLabel, color: '#2563eb', dash: [] }
               ]
             }
@@ -2218,18 +2234,17 @@
       });
     }
 
-    // ===== Report update =====
+    // ===== Report =====
     function updateReportBlocks() {
-      const baselineDur = state.normalCPM.projectDur;
-      const basePt = costAtDuration(baselineDur);
+      const contractDur = getReviewBasisDuration();
+      const contractPt = getContractPoint();
       const currentDisplay = getCurrentScenarioDisplay();
 
-      const deltaCost = basePt ? (currentDisplay.total - basePt.total) : 0;
+      const deltaCost = contractPt ? (currentDisplay.total - contractPt.total) : 0;
       const deltaStr = (deltaCost > 0 ? '+' : '') + formatCurrency(deltaCost) + '백만';
 
       setVal('reportStandardDuration', state.standardDuration);
-      setVal('reportBaselineDuration', state.normalCPM.projectDur);
-      setVal('reportContractDuration', state.targetNormalDuration);
+      setVal('reportContractDuration', contractDur);
       setVal('reportOptimalDuration', state.optimalPoint?.duration ?? '--');
 
       setVal('reportCurrentDuration', Math.round(currentDisplay.duration));
@@ -2242,14 +2257,13 @@
       setVal('reportOptimalCheck', v.ok ? `검증: ${v.msg}` : `⚠ ${v.msg}`);
     }
 
-    // ===== Calibration: simulation without touching UI =====
+    // ===== Calibration =====
     function deepClone(obj) { return JSON.parse(JSON.stringify(obj)); }
 
     function simulateBaselineDurationWithOfficeWbs(officeWbsCandidate) {
       const saved = deepClone(state.officeWbs);
       state.officeWbs = deepClone(officeWbsCandidate);
-      const tasks = (state.projectType === 'civil' || state.projectType === 'plant')
-        ? [] : buildOfficeWBS();
+      const tasks = (state.projectType === 'civil' || state.projectType === 'plant') ? [] : buildOfficeWBS();
       const dur = (tasks.length > 0) ? calculateCPM(tasks).projectDur : (state.normalCPM?.projectDur ?? 0);
       state.officeWbs = saved;
       return dur;
@@ -2264,21 +2278,111 @@
       { key: 'commissionWorkDays', label: 'TAB·시운전(작업일,전체)', min: 10, max: 140 }
     ];
 
+    function setOfficeWbsInputsToDOM(officeWbsObj) {
+      const setInput = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+      if (!officeWbsObj) return;
+
+      setInput('officeTempWorksWorkDays', officeWbsObj.tempWorksWorkDays);
+      setInput('officeEarthworkFoundationWorkDays', officeWbsObj.earthworkFoundationWorkDays);
+      setInput('officeUgFrameWorkDays', officeWbsObj.ugFrameWorkDays);
+      setInput('officeAgFrameWorkDays', officeWbsObj.agFrameWorkDays);
+      setInput('officeEnvelopeWorkDays', officeWbsObj.envelopeWorkDays);
+      setInput('officePartitionWorkDays', officeWbsObj.partitionWorkDays);
+      setInput('officeMepRoughWorkDays', officeWbsObj.mepRoughWorkDays);
+      setInput('officeInteriorWorkDays', officeWbsObj.interiorWorkDays);
+      setInput('officeMepFinishWorkDays', officeWbsObj.mepFinishWorkDays);
+      setInput('officeElecFireWorkDays', officeWbsObj.elecFireWorkDays);
+      setInput('officeCommissionWorkDays', officeWbsObj.commissionWorkDays);
+
+      setInput('officeMepStartLagDays', officeWbsObj.mepStartLagDays);
+      setInput('officePileStartLagDays', officeWbsObj.pileStartLagDays);
+      setInput('officeSiteStartLagDays', officeWbsObj.siteStartLagDays);
+
+      setInput('officeSiteFactor', (officeWbsObj.siteFactor ?? 1.0).toFixed(2));
+    }
+
+    function autoFitOfficeWbsToContract() {
+      if (state.projectType === 'civil' || state.projectType === 'plant') return;
+      const useSite = !!document.getElementById('calibUseSiteFactor')?.checked;
+      if (!useSite) return;
+
+      const useFine = !!document.getElementById('calibUseFineTune')?.checked;
+
+      const target = getReviewBasisDuration();
+      const current = deepClone(state.officeWbs);
+
+      let best = { f: clamp(current.siteFactor ?? 1.0, 0.70, 1.60), diff: Infinity, dur: 0 };
+
+      const tryFactor = (f) => {
+        const w = deepClone(current);
+        w.siteFactor = Math.round(f * 100) / 100;
+        const d = simulateBaselineDurationWithOfficeWbs(w);
+        const diff = Math.abs(d - target);
+
+        const tie =
+          (diff === best.diff) &&
+          (Math.abs(w.siteFactor - (current.siteFactor ?? 1.0)) < Math.abs(best.f - (current.siteFactor ?? 1.0)));
+
+        if (diff < best.diff || tie) best = { f: w.siteFactor, diff, dur: d };
+      };
+
+      for (let f = 0.70; f <= 1.60 + 1e-9; f += 0.05) tryFactor(f);
+      const start = clamp(best.f - 0.10, 0.70, 1.60);
+      const end = clamp(best.f + 0.10, 0.70, 1.60);
+      for (let f = start; f <= end + 1e-9; f += 0.01) tryFactor(f);
+
+      let candidate = deepClone(current);
+      candidate.siteFactor = best.f;
+
+      if (useFine && best.diff > 1) {
+        let guard = 0;
+        while (guard++ < 60) {
+          const curDur = simulateBaselineDurationWithOfficeWbs(candidate);
+          const err = target - curDur;
+          if (Math.abs(err) <= 1) break;
+
+          const dir = err > 0 ? +1 : -1;
+          let bestMove = null;
+
+          for (const p of CALIB_FINE_PARAMS) {
+            const w = deepClone(candidate);
+            const v0 = w[p.key] ?? current[p.key] ?? 0;
+            const v1 = clamp(v0 + dir * 1, p.min, p.max);
+            if (v1 === v0) continue;
+
+            w[p.key] = v1;
+            const d1 = simulateBaselineDurationWithOfficeWbs(w);
+            const improve = Math.abs(err) - Math.abs(target - d1);
+            if (improve <= 0) continue;
+
+            const penalty = Math.abs(v1 - (current[p.key] ?? v0));
+            if (!bestMove || improve > bestMove.improve || (improve === bestMove.improve && penalty < bestMove.penalty)) {
+              bestMove = { key: p.key, next: v1, dur: d1, improve, penalty };
+            }
+          }
+
+          if (!bestMove) break;
+          candidate[bestMove.key] = bestMove.next;
+        }
+      }
+
+      state.officeWbs = candidate;
+      setOfficeWbsInputsToDOM(candidate);
+    }
+
     function calcRecommendation(type) {
-      // civil/plant 제외
       if (state.projectType === 'civil' || state.projectType === 'plant') return;
 
       const useSite = !!document.getElementById('calibUseSiteFactor')?.checked;
       const useFine = !!document.getElementById('calibUseFineTune')?.checked;
 
-      const target = (type === 'contract') ? state.targetNormalDuration : state.standardDuration;
+      const target = (type === 'contract') ? getReviewBasisDuration() : state.standardDuration;
       const current = deepClone(state.officeWbs);
 
       let candidate = deepClone(current);
       let bestDur = simulateBaselineDurationWithOfficeWbs(candidate);
       let bestDiff = Math.abs(bestDur - target);
 
-      // 1) siteFactor grid search
       if (useSite) {
         const minF = 0.70, maxF = 1.60, step = 0.01;
         let bestF = candidate.siteFactor ?? 1.0;
@@ -2289,7 +2393,6 @@
           const d = simulateBaselineDurationWithOfficeWbs(w);
           const diff = Math.abs(d - target);
 
-          // tie-break: smaller change from current
           const tie = (diff === bestDiff) && (Math.abs(w.siteFactor - current.siteFactor) < Math.abs(bestF - current.siteFactor));
 
           if (diff < bestDiff || tie) {
@@ -2303,7 +2406,6 @@
         bestDiff = Math.abs(bestDur - target);
       }
 
-      // 2) fine tune greedy
       if (useFine && bestDiff > 1) {
         let guard = 0;
         while (guard++ < 80) {
@@ -2371,11 +2473,8 @@
       }
 
       const rows = [];
-
-      // Always show siteFactor
       rows.push({ key: 'siteFactor', label: '현장난이도 배수(siteFactor)' });
 
-      // show fine params + some core
       const showKeys = new Set([
         'tempWorksWorkDays',
         'earthworkFoundationWorkDays',
@@ -2448,7 +2547,7 @@
       if (!enabled) return;
 
       setVal('calibCurrentBaseline', `${state.normalCPM?.projectDur ?? '--'}일`);
-      setVal('calibTargetContract', `${state.targetNormalDuration}일`);
+      setVal('calibTargetContract', `${getReviewBasisDuration()}일`);
       setVal('calibTargetStandard', `${state.standardDuration}일`);
 
       if (calib.recommendation) {
@@ -2466,44 +2565,15 @@
       if (undoBtn) undoBtn.disabled = !calib.undoSnapshot;
     }
 
-    function setOfficeWbsInputsToDOM(officeWbsObj) {
-      const setInput = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
-
-      setInput('officeTempWorksWorkDays', officeWbsObj.tempWorksWorkDays);
-      setInput('officeEarthworkFoundationWorkDays', officeWbsObj.earthworkFoundationWorkDays);
-      setInput('officeUgFrameWorkDays', officeWbsObj.ugFrameWorkDays);
-      setInput('officeAgFrameWorkDays', officeWbsObj.agFrameWorkDays);
-      setInput('officeEnvelopeWorkDays', officeWbsObj.envelopeWorkDays);
-      setInput('officePartitionWorkDays', officeWbsObj.partitionWorkDays);
-      setInput('officeMepRoughWorkDays', officeWbsObj.mepRoughWorkDays);
-      setInput('officeInteriorWorkDays', officeWbsObj.interiorWorkDays);
-      setInput('officeMepFinishWorkDays', officeWbsObj.mepFinishWorkDays);
-      setInput('officeElecFireWorkDays', officeWbsObj.elecFireWorkDays);
-      setInput('officeCommissionWorkDays', officeWbsObj.commissionWorkDays);
-
-      setInput('officeMepStartLagDays', officeWbsObj.mepStartLagDays);
-      setInput('officePileStartLagDays', officeWbsObj.pileStartLagDays);
-      setInput('officeSiteStartLagDays', officeWbsObj.siteStartLagDays);
-
-      setInput('officeSiteFactor', (officeWbsObj.siteFactor ?? 1.0).toFixed(2));
-    }
-
     function applyRecommendation() {
       const r = calib.recommendation;
       if (!r) return;
 
-      // store undo snapshot (DOM 기준)
-      if (!calib.undoSnapshot) {
-        calib.undoSnapshot = deepClone(state.officeWbs);
-      }
+      if (!calib.undoSnapshot) calib.undoSnapshot = deepClone(state.officeWbs);
 
-      // apply to DOM
       setOfficeWbsInputsToDOM(r.recommendedWbs);
-
-      // recompute
       updateGlobalState();
 
-      // keep recommendation visible but allow undo
       const undoBtn = document.getElementById('calibUndoBtn');
       if (undoBtn) undoBtn.disabled = false;
     }
@@ -2540,19 +2610,15 @@
       updateCalibPanelStatus();
     }
 
-    // ===== Distribute/Build tasks =====
+    // ===== Build tasks =====
     function distributeTasks() {
       state.facilityCheck = computeFacilityChecks();
       setVal('facilityCheckOther', state.facilityCheck.otherBuilding);
       setVal('facilityCheckCommon', state.facilityCheck.commonForm);
 
-      if (state.projectType === 'civil') {
-        state.tasks = buildBromilowWBS(30, 0.30);
-      } else if (state.projectType === 'plant') {
-        state.tasks = buildBromilowWBS(35, 0.35);
-      } else {
-        state.tasks = buildOfficeWBS();
-      }
+      if (state.projectType === 'civil') state.tasks = buildBromilowWBS(30, 0.30);
+      else if (state.projectType === 'plant') state.tasks = buildBromilowWBS(35, 0.35);
+      else state.tasks = buildOfficeWBS();
 
       state.normalCPM = null;
       calculateCurrentCPM();
@@ -2566,7 +2632,6 @@
 
       generateTradeOffData();
 
-      // ✅ 기본 상태: "공사기간조정 없음" = 입력 비움 = 계약공기(현재)
       const input = document.getElementById('targetDaysInput');
       if (input) input.value = '';
 
@@ -2582,7 +2647,7 @@
       };
 
       state.contractAmount = readNum('contractAmount', 0);
-      state.targetNormalDuration = Math.round(readNum('targetNormalDuration', 0));
+      state.targetNormalDuration = Math.round(readNum('targetNormalDuration', 1));
 
       const overheadPercent = readNum('overheadRatioPercent', 37);
       state.overheadRatio = clamp(overheadPercent / 100, 0, 3.0);
@@ -2637,10 +2702,10 @@
         siteFactor: readNum('officeSiteFactor', 1.0)
       };
 
-      // 추천 적용 후 updateGlobalState가 호출되므로, 추천 UI는 유지하되 "현재 상태"를 갱신
+      autoFitOfficeWbsToContract();
       distributeTasks();
-      renderCalibDiffTable();
       updateCalibPanelStatus();
+      hideBaselineUI();
     }
 
     // ===== Onload =====
@@ -2653,6 +2718,7 @@
 
       renderCalibDiffTable();
       updateGlobalState();
+      hideBaselineUI();
     };
   </script>
 </body>
