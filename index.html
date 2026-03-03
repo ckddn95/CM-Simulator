@@ -12,32 +12,19 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
     body { font-family: 'Inter', 'Noto Sans KR', sans-serif; }
+    html { scroll-behavior: smooth; }
 
-    .chart-container {
-      position: relative;
-      width: 100%;
-      height: 400px;
-      max-height: 450px;
-    }
+    .chart-container { position: relative; width: 100%; height: 400px; max-height: 450px; }
 
     .custom-slider::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 18px;
-      height: 18px;
-      background: #2563eb;
-      cursor: pointer;
-      border-radius: 50%;
-      border: 2px solid white;
+      -webkit-appearance: none; appearance: none;
+      width: 18px; height: 18px; background: #2563eb; cursor: pointer;
+      border-radius: 50%; border: 2px solid white;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
     .custom-slider::-moz-range-thumb {
-      width: 18px;
-      height: 18px;
-      background: #2563eb;
-      cursor: pointer;
-      border-radius: 50%;
-      border: 2px solid white;
+      width: 18px; height: 18px; background: #2563eb; cursor: pointer;
+      border-radius: 50%; border: 2px solid white;
     }
 
     .report-section h3 {
@@ -46,8 +33,6 @@
       margin-bottom: 1rem;
       margin-top: 2rem;
     }
-
-    html { scroll-behavior: smooth; }
   </style>
 </head>
 
@@ -207,13 +192,45 @@
           </div>
         </div>
 
-        <!-- 업무시설 WBS 옵션 -->
+        <!-- 업무시설 WBS 옵션 + 프리셋 -->
         <div class="bg-emerald-50/50 border border-emerald-100 rounded-xl p-5" id="officeWbsOptions">
+          <div class="flex flex-col md:flex-row md:items-end gap-4 mb-4">
+            <div class="flex-1 space-y-1.5">
+              <label class="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">현장 프리셋</label>
+              <select id="officePreset" onchange="applyOfficePresetFromUI()"
+                class="w-full bg-white border border-emerald-200 rounded-lg px-3 py-2 text-xs font-bold cursor-pointer">
+                <option value="normal" selected>보통(기준)</option>
+                <option value="urban">도심 협소</option>
+                <option value="traffic">교통/민원(야간·통제)</option>
+                <option value="groundwater">지하수/흙막이 고난도</option>
+                <option value="rock">암반/천공 고난도</option>
+                <option value="winter">동절기/우기(비작업↑)</option>
+              </select>
+            </div>
+            <div class="flex-1 space-y-1.5">
+              <label class="text-[10px] font-bold text-slate-600 italic">프리셋 설명</label>
+              <div id="officePresetDesc" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-bold text-slate-600">
+                보통(기준): 평균적인 현장 가정(공통배수 1.0)
+              </div>
+            </div>
+          </div>
+
           <h4 class="text-[11px] font-black text-emerald-800 uppercase tracking-wider mb-4 flex items-center gap-1.5">
-            <i class="fa-solid fa-building-circle-check"></i> 업무시설 WBS(층 반복) 설정
+            <i class="fa-solid fa-building-circle-check"></i> 업무시설 WBS 설정 (현장특성 반영)
           </h4>
 
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="space-y-1.5">
+              <label class="text-[10px] font-bold text-slate-600 italic">가설공사 (작업일, 전체)</label>
+              <input type="number" id="officeTempWorksWorkDays" value="12" min="1" onchange="updateGlobalState()"
+                class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold" />
+            </div>
+            <div class="space-y-1.5">
+              <label class="text-[10px] font-bold text-slate-600 italic">흙막이·토공·기초 (작업일, 전체)</label>
+              <input type="number" id="officeEarthworkFoundationWorkDays" value="60" min="1" onchange="updateGlobalState()"
+                class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold" />
+            </div>
+
             <div class="space-y-1.5">
               <label class="text-[10px] font-bold text-slate-600 italic">지하 골조 (작업일/층)</label>
               <input type="number" id="officeUgFrameWorkDays" value="31" min="1" onchange="updateGlobalState()"
@@ -224,6 +241,7 @@
               <input type="number" id="officeAgFrameWorkDays" value="12" min="1" onchange="updateGlobalState()"
                 class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold" />
             </div>
+
             <div class="space-y-1.5">
               <label class="text-[10px] font-bold text-slate-600 italic">외장/커튼월 (작업일/층)</label>
               <input type="number" id="officeEnvelopeWorkDays" value="8" min="1" onchange="updateGlobalState()"
@@ -245,13 +263,20 @@
               <input type="number" id="officeInteriorWorkDays" value="10" min="1" onchange="updateGlobalState()"
                 class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold" />
             </div>
+
             <div class="space-y-1.5">
               <label class="text-[10px] font-bold text-slate-600 italic">MEP 마감/기기 (작업일/층)</label>
               <input type="number" id="officeMepFinishWorkDays" value="4" min="1" onchange="updateGlobalState()"
                 class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold" />
             </div>
             <div class="space-y-1.5">
-              <label class="text-[10px] font-bold text-slate-600 italic">TAB·시운전 (작업일, 전체)</label>
+              <label class="text-[10px] font-bold text-slate-600 italic">전기·통신·소방(별도) (작업일/층)</label>
+              <input type="number" id="officeElecFireWorkDays" value="6" min="1" onchange="updateGlobalState()"
+                class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold" />
+            </div>
+
+            <div class="space-y-1.5 col-span-2 md:col-span-2">
+              <label class="text-[10px] font-bold text-slate-600 italic">TAB·시운전·성능검증 (작업일, 전체)</label>
               <input type="number" id="officeCommissionWorkDays" value="45" min="1" onchange="updateGlobalState()"
                 class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold" />
             </div>
@@ -259,22 +284,44 @@
 
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
             <div class="space-y-1.5">
-              <label class="text-[10px] font-bold text-slate-600 italic">MEP 착수(벽체 시작 후, 일)</label>
+              <label class="text-[10px] font-bold text-slate-600 italic">MEP 착수(벽체 SS lag, 일)</label>
               <input type="number" id="officeMepStartLagDays" value="2" min="0" onchange="updateGlobalState()"
                 class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold" />
             </div>
+
+            <div class="space-y-1.5">
+              <label class="text-[10px] font-bold text-slate-600 italic">파일 착수(토공 SS lag, 일)</label>
+              <input type="number" id="officePileStartLagDays" value="5" min="0" onchange="updateGlobalState()"
+                class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold" />
+            </div>
+
             <div class="space-y-1.5">
               <label class="text-[10px] font-bold text-slate-600 italic">부대토목/조경(착수, F1 후 일)</label>
               <input type="number" id="officeSiteStartLagDays" value="15" min="0" onchange="updateGlobalState()"
                 class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold" />
             </div>
 
-            <div class="space-y-1.5 col-span-2">
+            <div class="space-y-1.5">
+              <label class="text-[10px] font-bold text-slate-600 italic">현장 난이도(공통 배수)</label>
+              <select id="officeSiteFactor" onchange="updateGlobalState()"
+                class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold cursor-pointer">
+                <option value="0.9">여유(0.9)</option>
+                <option value="1.0" selected>보통(1.0)</option>
+                <option value="1.15">협소/도심(1.15)</option>
+                <option value="1.30">초협소/복잡(1.30)</option>
+              </select>
+            </div>
+
+            <div class="space-y-1.5 col-span-2 md:col-span-4">
               <label class="text-[10px] font-bold text-slate-600 italic">간접비(일일) 직접입력 (백만/일, 0이면 자동)</label>
               <input type="number" id="indirectPerDayOverride" value="0" min="0" step="0.1" onchange="updateGlobalState()"
                 class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold" />
             </div>
           </div>
+
+          <p class="mt-3 text-[11px] font-bold text-emerald-700/80">
+            ※ 작업일 입력값은 연간 비작업일 보정(캘린더) + 현장 난이도(공통 배수)가 적용되어 “달력일”로 변환됩니다.
+          </p>
         </div>
       </div>
 
@@ -492,7 +539,7 @@
                   <i class="fa-solid fa-square-root-variable text-blue-500"></i> Methodology
                 </h4>
                 <p class="text-xs text-slate-600" id="methodologyDesc">
-                  층수/연면적/공사비/비작업일을 기반으로 WBS를 구성하고, 공식 검증 공기와 비교합니다.
+                  현장 프리셋/공통배수/공종별 작업일을 기반으로 WBS를 구성하고, 공식 검증 공기와 비교합니다.
                 </p>
                 <div class="bg-white py-4 px-6 rounded-2xl border border-slate-200 text-center font-mono text-[14px] text-blue-600 font-black shadow-inner" id="methodologyFormula">
                   WBS + CPM(SS/FS/lag) + Multi-CP Crashing + 시설물 공식 검증
@@ -564,17 +611,13 @@
       return new Intl.NumberFormat('ko-KR').format(Math.round(v));
     }
 
-    // ✅ 전기·통신·소방 "F1 (별도)" 형태도 층/공종 분리되도록 개선
+    // ✅ "전기·통신·소방 F3 (별도)" 같은 형태도 공종/층 분리
     function parseFloorLabel(name) {
-      // 예) "전기·통신·소방 F3 (별도)" / "외장/커튼월 F2" 모두 처리
-      // 끝에서: " F숫자" + optional "(...)" 를 함께 인식
       const m = name.match(/^(.*?)(?:\sF(\d+))\s*(?:\(([^)]*)\))?\s*$/);
       if (!m) return { base: name.trim(), floor: null, floorLabel: '' };
-
       const base = (m[1] || '').trim();
       const floor = parseInt(m[2], 10);
       const floorLabel = `F${m[2]}`;
-
       return { base, floor, floorLabel };
     }
 
@@ -606,13 +649,135 @@
       return { segments: segs, trackCount: trackEnds.length };
     }
 
-    function escapeHtmlAttr(str) {
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
+    // ===== Presets =====
+    const OFFICE_PRESETS = {
+      normal: {
+        name: '보통(기준)',
+        desc: '평균적인 현장 가정(공통배수 1.0).',
+        annualNonWorkingDays: 65,
+        siteFactor: 1.0,
+        tempWorksWorkDays: 12,
+        earthworkFoundationWorkDays: 60,
+        ugFrameWorkDays: 31, agFrameWorkDays: 12,
+        envelopeWorkDays: 8, partitionWorkDays: 6,
+        mepRoughWorkDays: 8, interiorWorkDays: 10,
+        mepFinishWorkDays: 4, elecFireWorkDays: 6,
+        commissionWorkDays: 45,
+        mepStartLagDays: 2, pileStartLagDays: 5, siteStartLagDays: 15
+      },
+      urban: {
+        name: '도심 협소',
+        desc: '협소부지/양중제약/동선복잡(공통배수 1.15).',
+        annualNonWorkingDays: 70,
+        siteFactor: 1.15,
+        tempWorksWorkDays: 18,
+        earthworkFoundationWorkDays: 80,
+        ugFrameWorkDays: 34, agFrameWorkDays: 13,
+        envelopeWorkDays: 9, partitionWorkDays: 7,
+        mepRoughWorkDays: 9, interiorWorkDays: 11,
+        mepFinishWorkDays: 5, elecFireWorkDays: 7,
+        commissionWorkDays: 50,
+        mepStartLagDays: 3, pileStartLagDays: 7, siteStartLagDays: 20
+      },
+      traffic: {
+        name: '교통/민원(야간·통제)',
+        desc: '작업시간 제약/야간/민원(공통배수 1.10 + 비작업 소폭↑).',
+        annualNonWorkingDays: 80,
+        siteFactor: 1.10,
+        tempWorksWorkDays: 16,
+        earthworkFoundationWorkDays: 75,
+        ugFrameWorkDays: 33, agFrameWorkDays: 13,
+        envelopeWorkDays: 9, partitionWorkDays: 7,
+        mepRoughWorkDays: 9, interiorWorkDays: 11,
+        mepFinishWorkDays: 5, elecFireWorkDays: 7,
+        commissionWorkDays: 50,
+        mepStartLagDays: 3, pileStartLagDays: 7, siteStartLagDays: 20
+      },
+      groundwater: {
+        name: '지하수/흙막이 고난도',
+        desc: '지하수/차수/흙막이 복잡(공통배수 1.25, 토공·기초↑).',
+        annualNonWorkingDays: 70,
+        siteFactor: 1.25,
+        tempWorksWorkDays: 20,
+        earthworkFoundationWorkDays: 105,
+        ugFrameWorkDays: 36, agFrameWorkDays: 13,
+        envelopeWorkDays: 9, partitionWorkDays: 7,
+        mepRoughWorkDays: 9, interiorWorkDays: 11,
+        mepFinishWorkDays: 5, elecFireWorkDays: 7,
+        commissionWorkDays: 55,
+        mepStartLagDays: 3, pileStartLagDays: 10, siteStartLagDays: 20
+      },
+      rock: {
+        name: '암반/천공 고난도',
+        desc: '암반/천공/소음제약(공통배수 1.20, 토공·파일↑).',
+        annualNonWorkingDays: 70,
+        siteFactor: 1.20,
+        tempWorksWorkDays: 18,
+        earthworkFoundationWorkDays: 95,
+        ugFrameWorkDays: 35, agFrameWorkDays: 13,
+        envelopeWorkDays: 9, partitionWorkDays: 7,
+        mepRoughWorkDays: 9, interiorWorkDays: 11,
+        mepFinishWorkDays: 5, elecFireWorkDays: 7,
+        commissionWorkDays: 55,
+        mepStartLagDays: 3, pileStartLagDays: 8, siteStartLagDays: 20,
+        pileWorkDays: 45
+      },
+      winter: {
+        name: '동절기/우기(비작업↑)',
+        desc: '동절기·우기로 비작업↑(비작업 95일, 공통배수 1.10).',
+        annualNonWorkingDays: 95,
+        siteFactor: 1.10,
+        tempWorksWorkDays: 16,
+        earthworkFoundationWorkDays: 80,
+        ugFrameWorkDays: 34, agFrameWorkDays: 13,
+        envelopeWorkDays: 9, partitionWorkDays: 7,
+        mepRoughWorkDays: 9, interiorWorkDays: 11,
+        mepFinishWorkDays: 5, elecFireWorkDays: 7,
+        commissionWorkDays: 55,
+        mepStartLagDays: 3, pileStartLagDays: 7, siteStartLagDays: 20
+      }
+    };
+
+    function applyOfficePresetFromUI() {
+      const key = document.getElementById('officePreset')?.value || 'normal';
+      applyOfficePreset(key);
+    }
+
+    function applyOfficePreset(key) {
+      const p = OFFICE_PRESETS[key] || OFFICE_PRESETS.normal;
+      const setInput = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+      const setSelect = (id, v) => { const el = document.getElementById(id); if (el) el.value = String(v); };
+
+      setVal('officePresetDesc', `${p.name}: ${p.desc}`);
+
+      // 공통
+      if (typeof p.annualNonWorkingDays === 'number') setInput('annualNonWorkingDays', p.annualNonWorkingDays);
+      if (typeof p.pileWorkDays === 'number') setInput('pileWorkDays', p.pileWorkDays);
+
+      // WBS 작업일
+      setSelect('officeSiteFactor', p.siteFactor ?? 1.0);
+      setInput('officeTempWorksWorkDays', p.tempWorksWorkDays ?? 12);
+      setInput('officeEarthworkFoundationWorkDays', p.earthworkFoundationWorkDays ?? 60);
+
+      setInput('officeUgFrameWorkDays', p.ugFrameWorkDays ?? 31);
+      setInput('officeAgFrameWorkDays', p.agFrameWorkDays ?? 12);
+
+      setInput('officeEnvelopeWorkDays', p.envelopeWorkDays ?? 8);
+      setInput('officePartitionWorkDays', p.partitionWorkDays ?? 6);
+
+      setInput('officeMepRoughWorkDays', p.mepRoughWorkDays ?? 8);
+      setInput('officeInteriorWorkDays', p.interiorWorkDays ?? 10);
+
+      setInput('officeMepFinishWorkDays', p.mepFinishWorkDays ?? 4);
+      setInput('officeElecFireWorkDays', p.elecFireWorkDays ?? 6);
+
+      setInput('officeCommissionWorkDays', p.commissionWorkDays ?? 45);
+
+      setInput('officeMepStartLagDays', p.mepStartLagDays ?? 2);
+      setInput('officePileStartLagDays', p.pileStartLagDays ?? 5);
+      setInput('officeSiteStartLagDays', p.siteStartLagDays ?? 15);
+
+      updateGlobalState();
     }
 
     // ===== Chart Plugin: Vertical Lines =====
@@ -633,7 +798,6 @@
           const color = line.color || '#000';
 
           ctx.save();
-
           ctx.beginPath();
           ctx.moveTo(x, yOffset + 18);
           ctx.lineTo(x, yAxis.bottom);
@@ -686,24 +850,37 @@
       projectType: 'office',
 
       officeWbs: {
+        // split earthwork
+        tempWorksWorkDays: 12,
+        earthworkFoundationWorkDays: 60,
+
         ugFrameWorkDays: 31,
         agFrameWorkDays: 12,
+
         envelopeWorkDays: 8,
         partitionWorkDays: 6,
+
         mepRoughWorkDays: 8,
         interiorWorkDays: 10,
+
         mepFinishWorkDays: 4,
+        elecFireWorkDays: 6,
+
         commissionWorkDays: 45,
+
         mepStartLagDays: 2,
-        siteStartLagDays: 15
+        pileStartLagDays: 5,
+        siteStartLagDays: 15,
+
+        siteFactor: 1.0
       },
 
       tasks: [],
       normalCPM: null,
       currentCPM: null,
 
-      standardDuration: 0, // 공식 검증치로 표시
-      wbsBaseDuration: 0,  // 기준 공정계획(정상 WBS) 공기
+      standardDuration: 0,
+      wbsBaseDuration: 0,
 
       facilityCheck: null,
 
@@ -712,8 +889,8 @@
 
       chartMode: 'delta',
 
-      ganttMode: 'grouped', // 'grouped' | 'detail'
-      sliderCollapsed: {}   // tradeKey -> bool
+      ganttMode: 'grouped',
+      sliderCollapsed: {}
     };
 
     let costChart = null;
@@ -750,34 +927,49 @@
       return isFinite(slope) && slope > 0 ? slope : 0;
     }
 
-    // ===== Office WBS Builder =====
+    // ===== Office WBS Builder (split earthwork + site factor) =====
     function buildOfficeWBS() {
       const tasks = [];
 
       const nwRatio = (state.annualNonWorkingDays || 0) / 365;
-      const nwFactor = 1 / Math.max(0.10, (1 - nwRatio));
+      const nwFactor = 1 / Math.max(0.10, (1 - nwRatio)); // calendar inflation
       const cal = (workDays) => Math.max(1, Math.round(Math.max(0, workDays) * nwFactor));
 
       const effectiveAG = Math.max(1, state.agFloors + 1);
       const ugFloors = Math.max(0, state.ugFloors);
 
       const opt = state.officeWbs || {};
-      const ugFrame = cal(opt.ugFrameWorkDays ?? 31);
-      const agFrame = cal(opt.agFrameWorkDays ?? 12);
-      const envelope = cal(opt.envelopeWorkDays ?? 8);
-      const partition = cal(opt.partitionWorkDays ?? 6);
-      const mepRough = cal(opt.mepRoughWorkDays ?? 8);
-      const interior = cal(opt.interiorWorkDays ?? 10);
-      const mepFinish = cal(opt.mepFinishWorkDays ?? 4);
-      const commissioning = cal(opt.commissionWorkDays ?? 45);
+      const siteFactor = Math.max(0.5, Math.min(2.0, opt.siteFactor ?? 1.0));
+      const f = (days) => (Math.max(0, days) * siteFactor);
+      const lagScale = (d) => Math.max(0, Math.round(Math.max(0, d ?? 0) * siteFactor));
 
-      const mepStartLag = Math.max(0, opt.mepStartLagDays ?? 2);
-      const siteStartLag = Math.max(0, opt.siteStartLagDays ?? 15);
+      // workdays -> calendar days
+      const tempWorks = cal(f(opt.tempWorksWorkDays ?? 12));
+      const earthworkFound = cal(f(opt.earthworkFoundationWorkDays ?? 60));
 
-      // 비용 배분(참고용)
+      const ugFrame = cal(f(opt.ugFrameWorkDays ?? 31));
+      const agFrame = cal(f(opt.agFrameWorkDays ?? 12));
+
+      const envelope = cal(f(opt.envelopeWorkDays ?? 8));
+      const partition = cal(f(opt.partitionWorkDays ?? 6));
+
+      const mepRough = cal(f(opt.mepRoughWorkDays ?? 8));
+      const interior = cal(f(opt.interiorWorkDays ?? 10));
+
+      const mepFinish = cal(f(opt.mepFinishWorkDays ?? 4));
+      const elecFire = cal(f(opt.elecFireWorkDays ?? 6));
+
+      const commissioning = cal(f(opt.commissionWorkDays ?? 45));
+
+      const mepStartLag = lagScale(opt.mepStartLagDays ?? 2);
+      const pileStartLag = lagScale(opt.pileStartLagDays ?? 5);
+      const siteStartLag = lagScale(opt.siteStartLagDays ?? 15);
+
+      // 비용 배분(참고용) - 합계 1.00
       const ratios = {
         demolition: 0.02,
-        earthwork: 0.06,
+        tempWorks: 0.02,
+        earthwork: 0.04,
         pile: 0.05,
         basementFrame: 0.10,
         superFrame: 0.20,
@@ -787,12 +979,10 @@
         mep: 0.18,
         site: 0.03
       };
-      const sumRatio = Object.values(ratios).reduce((a, b) => a + b, 0);
-      const norm = sumRatio > 1 ? (1 / sumRatio) : 1;
 
       const total = state.baseDirectCost;
       const cost = {};
-      Object.keys(ratios).forEach(k => cost[k] = total * ratios[k] * norm);
+      Object.keys(ratios).forEach(k => cost[k] = total * ratios[k]);
 
       const makeTask = (id, name, normalDur, crashFactor, normalCost, crashMult, deps = [], isNoCost = false) => {
         const nDur = Math.max(1, Math.round(normalDur));
@@ -812,9 +1002,11 @@
 
       let id = 1;
 
+      // 착공 준비(달력일 고정)
       const idStart = id++;
       makeTask(idStart, '착공 및 준비기간', Math.max(1, state.startAdminDays), 1.0, 0, 1.0, []);
 
+      // 철거(옵션)
       let idDemo = null;
       if ((state.demolitionDays || 0) > 0) {
         idDemo = id++;
@@ -823,27 +1015,38 @@
         ]);
       }
 
-      const idEarth = id++;
-      makeTask(idEarth, '가설·토공·흙막이·기초', cal(12), 0.90, cost.earthwork, 1.20, [
+      // ✅ 가설공사(분리)
+      const idTemp = id++;
+      makeTask(idTemp, '가설공사(현장설비·동선·가설전기)', tempWorks, 0.95, cost.tempWorks, 1.10, [
         { pred: (idDemo ?? idStart), type: 'FS', lag: 0 }
       ]);
 
+      // ✅ 흙막이·토공·기초(분리)
+      const idEarth = id++;
+      makeTask(idEarth, '흙막이·토공·기초', earthworkFound, 0.90, cost.earthwork, 1.20, [
+        { pred: idTemp, type: 'FS', lag: 0 }
+      ]);
+
+      // 파일(옵션): 가설 완료 후, 토공 착수 후 SS lag로 부분 착수 허용
       let idPile = null;
       if ((state.pileWorkDays || 0) > 0) {
         idPile = id++;
         makeTask(idPile, '지정(파일)·지반개량', Math.max(1, state.pileWorkDays), 1.0, cost.pile, 1.10, [
-          { pred: idEarth, type: 'FS', lag: 0 }
+          { pred: idTemp, type: 'FS', lag: 0 },
+          { pred: idEarth, type: 'SS', lag: pileStartLag }
         ]);
       }
 
+      // 지하 골조
       let idBasement = null;
       if (ugFloors > 0) {
         idBasement = id++;
-        makeTask(idBasement, `지하 골조공사(B${ugFloors})`, ugFrame * ugFloors, 0.90, cost.basementFrame, 1.60, [
-          { pred: (idPile ?? idEarth), type: 'FS', lag: 0 }
-        ]);
+        const deps = [{ pred: idEarth, type: 'FS', lag: 0 }];
+        if (idPile) deps.push({ pred: idPile, type: 'FS', lag: 0 });
+        makeTask(idBasement, `지하 골조공사(B${ugFloors})`, ugFrame * ugFloors, 0.90, cost.basementFrame, 1.60, deps);
       }
 
+      // 층 반복 비용 배분
       const frameCostPerFloor = cost.superFrame / effectiveAG;
       const envCostPerFloor = cost.envelope / effectiveAG;
       const partCostPerFloor = cost.partition / effectiveAG;
@@ -854,61 +1057,74 @@
       const mepFinishIds = [];
       const elecFireIds = [];
 
-      for (let f = 1; f <= effectiveAG; f++) {
-        const predFrame = (f === 1) ? (idBasement ?? (idPile ?? idEarth)) : frameIds[f - 2];
+      for (let fno = 1; fno <= effectiveAG; fno++) {
+        // F1 시작 조건
+        let frameDeps = [];
+        if (fno === 1) {
+          if (idBasement) {
+            frameDeps = [{ pred: idBasement, type: 'FS', lag: 0 }];
+          } else {
+            frameDeps = [{ pred: idEarth, type: 'FS', lag: 0 }];
+            if (idPile) frameDeps.push({ pred: idPile, type: 'FS', lag: 0 });
+          }
+        } else {
+          frameDeps = [{ pred: frameIds[fno - 2], type: 'FS', lag: 0 }];
+        }
 
         const idFrame = id++;
-        makeTask(idFrame, `지상 골조 F${f}`, agFrame, 0.90, frameCostPerFloor, 2.00, [
-          { pred: predFrame, type: 'FS', lag: 0 }
-        ]);
+        makeTask(idFrame, `지상 골조 F${fno}`, agFrame, 0.90, frameCostPerFloor, 2.00, frameDeps);
         frameIds.push(idFrame);
 
         const idEnv = id++;
-        makeTask(idEnv, `외장/커튼월 F${f}`, envelope, 0.85, envCostPerFloor, 1.25, [
+        makeTask(idEnv, `외장/커튼월 F${fno}`, envelope, 0.85, envCostPerFloor, 1.25, [
           { pred: idFrame, type: 'FS', lag: 0 }
         ]);
 
         const idPart = id++;
-        makeTask(idPart, `경량벽체/조적 F${f}`, partition, 0.85, partCostPerFloor, 1.15, [
+        makeTask(idPart, `경량벽체/조적 F${fno}`, partition, 0.85, partCostPerFloor, 1.15, [
           { pred: idFrame, type: 'FS', lag: 0 }
         ]);
 
         const idMepR = id++;
-        makeTask(idMepR, `MEP 러프인 F${f}`, mepRough, 0.85, mepCostPerFloor * 0.55, 1.30, [
+        makeTask(idMepR, `MEP 러프인 F${fno}`, mepRough, 0.85, mepCostPerFloor * 0.55, 1.30, [
           { pred: idPart, type: 'SS', lag: mepStartLag }
         ]);
 
         const idInterior = id++;
-        makeTask(idInterior, `내부마감 F${f}`, interior, 0.85, interiorCostPerFloor, 1.10, [
+        makeTask(idInterior, `내부마감 F${fno}`, interior, 0.85, interiorCostPerFloor, 1.10, [
           { pred: idPart, type: 'FS', lag: 0 },
           { pred: idMepR, type: 'FS', lag: 0 },
           { pred: idEnv, type: 'FS', lag: 0 }
         ]);
 
         const idMepF = id++;
-        makeTask(idMepF, `MEP 마감/기기 F${f}`, mepFinish, 0.85, mepCostPerFloor * 0.45, 1.25, [
+        makeTask(idMepF, `MEP 마감/기기 F${fno}`, mepFinish, 0.85, mepCostPerFloor * 0.45, 1.25, [
           { pred: idInterior, type: 'FS', lag: 0 }
         ]);
         mepFinishIds.push(idMepF);
 
+        // 전기·통신·소방(별도) - 한 줄 표시(파싱 지원). 비용 0(별도)로 두고, 자동최적화에서는 crash 비용 미반영.
         const idEF = id++;
-        makeTask(idEF, `전기·통신·소방 F${f} (별도)`, cal(6), 0.85, 0, 1.0, [
+        makeTask(idEF, `전기·통신·소방 F${fno} (별도)`, elecFire, 0.85, 0, 1.0, [
           { pred: idFrame, type: 'FS', lag: 0 }
         ], true);
         elecFireIds.push(idEF);
       }
 
+      // 부대토목·조경(병렬)
       const idSite = id++;
-      makeTask(idSite, '부대토목·조경', cal(30), 0.85, cost.site, 1.20, [
+      makeTask(idSite, '부대토목·조경', cal(f(30)), 0.85, cost.site, 1.20, [
         { pred: frameIds[0], type: 'SS', lag: siteStartLag }
       ]);
 
+      // TAB·시운전(전체)
       const idComm = id++;
       const commDeps = [];
       mepFinishIds.forEach(pid => commDeps.push({ pred: pid, type: 'FS', lag: 0 }));
       elecFireIds.forEach(pid => commDeps.push({ pred: pid, type: 'FS', lag: 0 }));
       makeTask(idComm, 'TAB·시운전·성능검증', commissioning, 0.90, total * 0.01, 1.30, commDeps);
 
+      // 준공·인허가(달력일 고정)
       const idClose = id++;
       makeTask(idClose, '준공서류·검사·인허가', Math.max(1, state.endAdminDays), 1.0, 0, 1.0, [
         { pred: idComm, type: 'FS', lag: 0 },
@@ -1109,9 +1325,10 @@
           const vout = i * 2 + 1;
 
           const task = taskList.find(t => t.id === id);
-          const crashable = !!task && task.currentDur > task.crashDur && getCostSlope(task) > 0;
-          const cap = crashable ? Math.round(getCostSlope(task) * SCALE) : INF;
+          const slope = getCostSlope(task);
+          const crashable = !!task && task.currentDur > task.crashDur && slope > 0;
 
+          const cap = crashable ? Math.round(slope * SCALE) : INF;
           add(vin, vout, cap);
         });
 
@@ -1278,15 +1495,7 @@
         const key = normalizeTradeKey(base);
         const node = nodeById[t.id];
 
-        const item = {
-          id: t.id,
-          name: t.name,
-          floorLabel,
-          floor,
-          task: t,
-          node
-        };
-
+        const item = { id: t.id, name: t.name, floorLabel, floor, task: t, node };
         if (!groups.has(key)) groups.set(key, []);
         groups.get(key).push(item);
       });
@@ -1302,6 +1511,8 @@
 
         const totalShortened = items.reduce((acc, it) => acc + Math.max(0, it.task.normalDur - it.task.currentDur), 0);
         const hasCP = items.some(it => it.node?.isCP);
+
+        // "No cost"라도 slope가 0이면 자동 최적화는 제외(미반영).
         const crashableCount = items.filter(it => it.task.currentDur > it.task.crashDur && getCostSlope(it.task) > 0).length;
 
         const minLower = Math.max(...items.map(it => it.task.crashDur));
@@ -1311,15 +1522,9 @@
         const commonValue = Math.round(items.reduce((a, it) => a + it.task.currentDur, 0) / items.length);
 
         list.push({
-          key,
-          label: key,
-          items,
-          totalShortened,
-          hasCP,
-          crashableCount,
-          groupSettable,
-          groupMin: minLower,
-          groupMax: maxUpper,
+          key, label: key, items,
+          totalShortened, hasCP, crashableCount,
+          groupSettable, groupMin: minLower, groupMax: maxUpper,
           groupValue: Math.min(Math.max(commonValue, minLower), maxUpper)
         });
       }
@@ -1333,7 +1538,7 @@
       return list;
     }
 
-    // ===== UI: Grouped Sliders =====
+    // ===== UI: Sliders =====
     function toggleSliderGroup(key) {
       state.sliderCollapsed[key] = !state.sliderCollapsed[key];
       renderSliders();
@@ -1374,7 +1579,7 @@
 
         const badgeCrash = g.crashableCount > 0
           ? `<span class="text-[9px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-black border border-blue-200">단축가능 ${g.crashableCount}</span>`
-          : `<span class="text-[9px] bg-slate-100 text-slate-400 px-2 py-0.5 rounded font-black border border-slate-200">단축불가</span>`;
+          : `<span class="text-[9px] bg-slate-100 text-slate-400 px-2 py-0.5 rounded font-black border border-slate-200">단축비 미반영</span>`;
 
         const shortText = g.totalShortened > 0
           ? `<span class="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">총 -${g.totalShortened}d</span>`
@@ -1393,7 +1598,7 @@
                 ${shortText}
               </div>
             </div>
-            <button onclick="toggleSliderGroup('${escapeHtmlAttr(g.key)}')" class="px-3 py-2 rounded-xl text-xs font-black bg-slate-900 text-white hover:bg-black transition-all">
+            <button onclick='toggleSliderGroup(${JSON.stringify(g.key)})' class="px-3 py-2 rounded-xl text-xs font-black bg-slate-900 text-white hover:bg-black transition-all">
               ${collapsed ? '<i class="fa-solid fa-chevron-down"></i>' : '<i class="fa-solid fa-chevron-up"></i>'}
             </button>
           </div>
@@ -1401,6 +1606,7 @@
 
         let body = '';
 
+        // group slider (공종 일괄)
         if (!collapsed && g.groupSettable) {
           body += `
             <div class="mt-4 bg-white rounded-2xl border border-slate-200 p-4">
@@ -1414,19 +1620,22 @@
                 </div>
               </div>
               <input type="range" min="${g.groupMin}" max="${g.groupMax}" value="${g.groupValue}"
-                oninput="handleGroupSliderChange('${escapeHtmlAttr(g.key)}', this.value)"
+                oninput='handleGroupSliderChange(${JSON.stringify(g.key)}, this.value)'
                 class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer custom-slider" />
             </div>
           `;
         }
 
+        // per-item sliders
         if (!collapsed) {
           body += `<div class="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">`;
           g.items.forEach(it => {
             const t = it.task;
             const node = it.node;
+
             const isFixed = t.normalDur === t.crashDur;
             const isNoCost = (t.normalCost === 0 && t.crashCost === 0);
+
             const slope = getCostSlope(t);
             const diff = t.normalDur - t.currentDur;
 
@@ -1479,7 +1688,7 @@
       });
     }
 
-    // ===== UI: Gantt (Grouped/Detail) =====
+    // ===== UI: Gantt =====
     function toggleGanttMode() {
       state.ganttMode = (state.ganttMode === 'grouped') ? 'detail' : 'grouped';
       const btn = document.getElementById('ganttModeBtn');
@@ -1824,9 +2033,10 @@
         const effectiveAG = state.agFloors + 1;
         const fc = state.facilityCheck;
         details.innerHTML = `
-          <li>- WBS: 지상층(${effectiveAG}층) 반복(골조/외장/벽체/MEP/내부/MEP마감) + TAB·시운전 + 준공/검사</li>
+          <li>- WBS: 가설 → 흙막이/토공/기초 → (파일) → 지하골조 → 지상층(${effectiveAG}층) 반복 → TAB/시운전 → 준공</li>
           <li>- 관계: FS/SS + lag 반영, 단축 시 CP 전이/중첩을 실시간 반영</li>
           <li>- 비작업일 보정: 연간 비작업(${state.annualNonWorkingDays}일) 캘린더 보정계수 적용</li>
+          <li>- 현장 난이도: 공통 배수(${state.officeWbs.siteFactor})로 공종 작업일 가중</li>
           <li>- 공식 검증치: 기타(${fc?.otherBuilding ?? '--'}일) / 면적·지하(${fc?.commonForm ?? '--'}일)</li>
         `;
       }
@@ -2003,7 +2213,6 @@
       state.wbsBaseDuration = state.normalCPM.projectDur;
       setVal('wbsBaseDurationValue', state.wbsBaseDuration);
 
-      // 표준공기(공식 검증치)는 commonForm로 사용
       state.standardDuration = state.facilityCheck.commonForm;
 
       generateTradeOffData();
@@ -2036,16 +2245,28 @@
       };
 
       state.officeWbs = {
+        tempWorksWorkDays: readNum('officeTempWorksWorkDays', 12),
+        earthworkFoundationWorkDays: readNum('officeEarthworkFoundationWorkDays', 60),
+
         ugFrameWorkDays: readNum('officeUgFrameWorkDays', 31),
         agFrameWorkDays: readNum('officeAgFrameWorkDays', 12),
+
         envelopeWorkDays: readNum('officeEnvelopeWorkDays', 8),
         partitionWorkDays: readNum('officePartitionWorkDays', 6),
+
         mepRoughWorkDays: readNum('officeMepRoughWorkDays', 8),
         interiorWorkDays: readNum('officeInteriorWorkDays', 10),
+
         mepFinishWorkDays: readNum('officeMepFinishWorkDays', 4),
+        elecFireWorkDays: readNum('officeElecFireWorkDays', 6),
+
         commissionWorkDays: readNum('officeCommissionWorkDays', 45),
+
         mepStartLagDays: readNum('officeMepStartLagDays', 2),
-        siteStartLagDays: readNum('officeSiteStartLagDays', 15)
+        pileStartLagDays: readNum('officePileStartLagDays', 5),
+        siteStartLagDays: readNum('officeSiteStartLagDays', 15),
+
+        siteFactor: readNum('officeSiteFactor', 1.0)
       };
 
       distributeTasks();
@@ -2056,6 +2277,11 @@
       const today = new Date().toLocaleDateString('ko-KR');
       setVal('reportDate', today);
       setVal('reportDateBadge', today);
+
+      // 프리셋 설명 초기화
+      const k = document.getElementById('officePreset')?.value || 'normal';
+      setVal('officePresetDesc', `${OFFICE_PRESETS[k].name}: ${OFFICE_PRESETS[k].desc}`);
+
       updateGlobalState();
     };
   </script>
