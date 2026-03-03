@@ -13,8 +13,8 @@
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
     body { font-family: 'Inter', 'Noto Sans KR', sans-serif; }
     html { scroll-behavior: smooth; }
-    .chart-container { position: relative; width: 100%; height: 420px; max-height: 480px; }
 
+    .chart-container { position: relative; width: 100%; height: 420px; max-height: 480px; }
     .custom-slider::-webkit-slider-thumb {
       -webkit-appearance: none; appearance: none;
       width: 18px; height: 18px; background: #2563eb; cursor: pointer;
@@ -25,7 +25,6 @@
       width: 18px; height: 18px; background: #2563eb; cursor: pointer;
       border-radius: 50%; border: 2px solid white;
     }
-
     .report-section h3 {
       border-left: 4px solid #2563eb;
       padding-left: 1rem;
@@ -208,7 +207,7 @@
           </div>
         </div>
 
-        <!-- 업무시설 WBS 옵션 + 프리셋 -->
+        <!-- Office WBS options + presets -->
         <div class="bg-emerald-50/50 border border-emerald-100 rounded-xl p-5" id="officeWbsOptions">
           <div class="flex flex-col md:flex-row md:items-end gap-4 mb-4">
             <div class="flex-1 space-y-1.5">
@@ -432,11 +431,12 @@
                 <div class="flex flex-col items-center justify-center mb-6">
                   <div class="flex items-center justify-center gap-3">
                     <button onclick="adjustTargetDays(-1)" class="w-12 h-12 bg-slate-800 hover:bg-slate-700 rounded-xl flex items-center justify-center font-bold text-2xl transition-colors active:scale-95">-</button>
-                    <input type="number" id="targetDaysInput" value="0"
-                           oninput="markTargetTouched(); updateTargetUI()"
+                    <input type="number" id="targetDaysInput" value=""
+                           oninput="onTargetInputChanged()"
                            onblur="validateTargetDays()"
                            onkeydown="if(event.key === 'Enter') { validateTargetDays(); applyTargetDuration(); }"
-                           class="w-24 bg-slate-800 border border-slate-700 rounded-xl px-2 py-2 text-2xl font-black text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                           placeholder="비우면 계약공기"
+                           class="w-32 bg-slate-800 border border-slate-700 rounded-xl px-2 py-2 text-xl font-black text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                     <button onclick="adjustTargetDays(1)" class="w-12 h-12 bg-slate-800 hover:bg-slate-700 rounded-xl flex items-center justify-center font-bold text-2xl transition-colors active:scale-95">+</button>
                   </div>
                   <div id="targetDaysDiff" class="text-[12px] font-bold mt-3 h-6 flex items-center justify-center text-slate-400 tracking-wide text-center">--</div>
@@ -454,7 +454,7 @@
               </button>
 
               <p class="text-[11px] text-slate-400 mt-3">
-                현재공기 근거: <span class="font-black text-slate-200">CPM(Project Duration = max EF)</span>
+                ※ 입력을 비우면 <span class="font-black text-slate-200">계약공기(현재)</span>로 표시됩니다. (공정표 반영 기준)
               </p>
             </div>
           </div>
@@ -537,7 +537,7 @@
           <span class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-amber-500"></div> 표준공기(참고)</span>
           <span class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-slate-500"></div> 계약공기</span>
           <span class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-emerald-500"></div> 최소비용(MC)</span>
-          <span class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-blue-600"></div> 공사기간조정</span>
+          <span class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-blue-600"></div> <span id="legendCurrentLabel">현재(계약/조정)</span></span>
         </div>
 
         <div class="chart-container">
@@ -587,10 +587,10 @@
           <div class="text-[11px] text-slate-500 mt-2" id="reportOptimalCheck">검증: --</div>
         </div>
         <div class="bg-blue-50 border border-blue-200 rounded-2xl p-5">
-          <div class="text-[11px] font-black text-blue-700 uppercase">공사기간조정</div>
+          <div class="text-[11px] font-black text-blue-700 uppercase" id="reportCurrentTitle">현재(계약/조정)</div>
           <div class="text-2xl font-black text-blue-700 mt-1"><span id="reportCurrentDuration">--</span><span class="text-sm font-bold text-blue-400 ml-1">일</span></div>
           <div class="text-[11px] text-blue-700/70 mt-1">Δ비용: <span id="reportCurrentDeltaCost">--</span></div>
-          <div class="text-[10px] text-blue-800/70 mt-2">근거: CPM(Project Duration)</div>
+          <div class="text-[10px] text-blue-800/70 mt-2">근거: CPM(Project Duration) / 계약모드(입력 비움) 시 계약공기 고정 표시</div>
         </div>
       </div>
 
@@ -604,7 +604,6 @@
 
       <!-- Detailed report -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 text-[15px] leading-relaxed text-slate-600 report-section">
-
         <!-- Left -->
         <div class="space-y-10">
           <section>
@@ -881,9 +880,35 @@
     };
     Chart.register(verticalLinePlugin);
 
-    // ===== Target input UX =====
-    function markTargetTouched() { state.targetUserTouched = true; }
+    // ===== Target mode helpers =====
+    function isContractMode() {
+      const input = document.getElementById('targetDaysInput');
+      const raw = input?.value;
+      return raw === '' || raw === undefined || raw === null;
+    }
+    function onTargetInputChanged() {
+      updateTargetUI();
+    }
+    function syncTargetInputToCurrentDuration() {
+      const input = document.getElementById('targetDaysInput');
+      if (!input || !state.normalCPM) return;
+      const diff = Math.round(state.currentCPM.projectDur - state.normalCPM.projectDur);
+      input.value = diff; // 숫자 입력 = "조정 모드"
+      updateTargetUI();
+    }
+    function getCurrentScenarioDisplay() {
+      // "공사기간조정이 없으면(= 입력 비움)" -> 현재 표시/비용은 계약공기 기준
+      if (isContractMode()) {
+        const pt = costAtDuration(state.targetNormalDuration);
+        if (pt) {
+          return { duration: state.targetNormalDuration, direct: pt.direct, indirect: pt.indirect, total: pt.total, mode: 'contract' };
+        }
+      }
+      const m = calculateMetrics(state.tasks);
+      return { ...m, mode: 'adjusted' };
+    }
 
+    // ===== Parsing helpers for grouping =====
     function parseFloorLabel(name) {
       const m = name.match(/^(.*?)(?:\sF(\d+))\s*(?:\(([^)]*)\))?\s*$/);
       if (!m) return { base: name.trim(), floor: null, floorLabel: '' };
@@ -892,23 +917,18 @@
       const floorLabel = `F${m[2]}`;
       return { base, floor, floorLabel };
     }
-
     function extractPositionLabel(name) {
       const f = parseFloorLabel(name);
       if (f.floorLabel) return f.floorLabel;
-
       const b = name.match(/\(B(\d+)\)|\bB(\d+)\b/i);
       if (b) return `B${b[1] || b[2]}`;
       if (/옥탑|PH|펜트/i.test(name)) return 'PH';
-
       if (/가설|흙막이|토공|기초|파일|부대토목|조경|준공|시운전|성능검증|착공|준비/i.test(name)) return '전체';
       return '';
     }
-
     function normalizeTradeKey(name) {
       return name.replace(/\sF\d+\s*$/, '').replace(/\s*\(별도\)\s*$/, '').trim();
     }
-
     function assignTracksByOverlap(segments) {
       const segs = [...segments].sort((a, b) => (a.cStart - b.cStart) || (a.cEnd - b.cEnd));
       const trackEnds = [];
@@ -932,80 +952,18 @@
 
     // ===== Presets =====
     const OFFICE_PRESETS = {
-      normal: {
-        name:'보통(기준)', desc:'평균적인 현장 가정(공통배수 1.0).',
-        annualNonWorkingDays:65, siteFactor:1.0,
-        tempWorksWorkDays:12, earthworkFoundationWorkDays:60,
-        ugFrameWorkDays:31, agFrameWorkDays:12,
-        envelopeWorkDays:8, partitionWorkDays:6,
-        mepRoughWorkDays:8, interiorWorkDays:10,
-        mepFinishWorkDays:4, elecFireWorkDays:6,
-        commissionWorkDays:45,
-        mepStartLagDays:2, pileStartLagDays:5, siteStartLagDays:15
-      },
-      urban: {
-        name:'도심 협소', desc:'협소부지/양중제약/동선복잡(공통배수 1.15).',
-        annualNonWorkingDays:70, siteFactor:1.15,
-        tempWorksWorkDays:18, earthworkFoundationWorkDays:80,
-        ugFrameWorkDays:34, agFrameWorkDays:13,
-        envelopeWorkDays:9, partitionWorkDays:7,
-        mepRoughWorkDays:9, interiorWorkDays:11,
-        mepFinishWorkDays:5, elecFireWorkDays:7,
-        commissionWorkDays:50,
-        mepStartLagDays:3, pileStartLagDays:7, siteStartLagDays:20
-      },
-      traffic: {
-        name:'교통/민원(야간·통제)', desc:'작업시간 제약/야간/민원(공통배수 1.10 + 비작업 소폭↑).',
-        annualNonWorkingDays:80, siteFactor:1.10,
-        tempWorksWorkDays:16, earthworkFoundationWorkDays:75,
-        ugFrameWorkDays:33, agFrameWorkDays:13,
-        envelopeWorkDays:9, partitionWorkDays:7,
-        mepRoughWorkDays:9, interiorWorkDays:11,
-        mepFinishWorkDays:5, elecFireWorkDays:7,
-        commissionWorkDays:50,
-        mepStartLagDays:3, pileStartLagDays:7, siteStartLagDays:20
-      },
-      groundwater: {
-        name:'지하수/흙막이 고난도', desc:'지하수/차수/흙막이 복잡(공통배수 1.25, 토공·기초↑).',
-        annualNonWorkingDays:70, siteFactor:1.25,
-        tempWorksWorkDays:20, earthworkFoundationWorkDays:105,
-        ugFrameWorkDays:36, agFrameWorkDays:13,
-        envelopeWorkDays:9, partitionWorkDays:7,
-        mepRoughWorkDays:9, interiorWorkDays:11,
-        mepFinishWorkDays:5, elecFireWorkDays:7,
-        commissionWorkDays:55,
-        mepStartLagDays:3, pileStartLagDays:10, siteStartLagDays:20
-      },
-      rock: {
-        name:'암반/천공 고난도', desc:'암반/천공/소음제약(공통배수 1.20, 토공·파일↑).',
-        annualNonWorkingDays:70, siteFactor:1.20,
-        tempWorksWorkDays:18, earthworkFoundationWorkDays:95,
-        ugFrameWorkDays:35, agFrameWorkDays:13,
-        envelopeWorkDays:9, partitionWorkDays:7,
-        mepRoughWorkDays:9, interiorWorkDays:11,
-        mepFinishWorkDays:5, elecFireWorkDays:7,
-        commissionWorkDays:55,
-        mepStartLagDays:3, pileStartLagDays:8, siteStartLagDays:20,
-        pileWorkDays:45
-      },
-      winter: {
-        name:'동절기/우기(비작업↑)', desc:'동절기·우기로 비작업↑(비작업 95일, 공통배수 1.10).',
-        annualNonWorkingDays:95, siteFactor:1.10,
-        tempWorksWorkDays:16, earthworkFoundationWorkDays:80,
-        ugFrameWorkDays:34, agFrameWorkDays:13,
-        envelopeWorkDays:9, partitionWorkDays:7,
-        mepRoughWorkDays:9, interiorWorkDays:11,
-        mepFinishWorkDays:5, elecFireWorkDays:7,
-        commissionWorkDays:55,
-        mepStartLagDays:3, pileStartLagDays:7, siteStartLagDays:20
-      }
+      normal: { name:'보통(기준)', desc:'평균적인 현장 가정(공통배수 1.0).', annualNonWorkingDays:65, siteFactor:1.0, tempWorksWorkDays:12, earthworkFoundationWorkDays:60, ugFrameWorkDays:31, agFrameWorkDays:12, envelopeWorkDays:8, partitionWorkDays:6, mepRoughWorkDays:8, interiorWorkDays:10, mepFinishWorkDays:4, elecFireWorkDays:6, commissionWorkDays:45, mepStartLagDays:2, pileStartLagDays:5, siteStartLagDays:15 },
+      urban: { name:'도심 협소', desc:'협소부지/양중제약/동선복잡(공통배수 1.15).', annualNonWorkingDays:70, siteFactor:1.15, tempWorksWorkDays:18, earthworkFoundationWorkDays:80, ugFrameWorkDays:34, agFrameWorkDays:13, envelopeWorkDays:9, partitionWorkDays:7, mepRoughWorkDays:9, interiorWorkDays:11, mepFinishWorkDays:5, elecFireWorkDays:7, commissionWorkDays:50, mepStartLagDays:3, pileStartLagDays:7, siteStartLagDays:20 },
+      traffic: { name:'교통/민원(야간·통제)', desc:'작업시간 제약/야간/민원(공통배수 1.10 + 비작업 소폭↑).', annualNonWorkingDays:80, siteFactor:1.10, tempWorksWorkDays:16, earthworkFoundationWorkDays:75, ugFrameWorkDays:33, agFrameWorkDays:13, envelopeWorkDays:9, partitionWorkDays:7, mepRoughWorkDays:9, interiorWorkDays:11, mepFinishWorkDays:5, elecFireWorkDays:7, commissionWorkDays:50, mepStartLagDays:3, pileStartLagDays:7, siteStartLagDays:20 },
+      groundwater:{ name:'지하수/흙막이 고난도', desc:'지하수/차수/흙막이 복잡(공통배수 1.25, 토공·기초↑).', annualNonWorkingDays:70, siteFactor:1.25, tempWorksWorkDays:20, earthworkFoundationWorkDays:105, ugFrameWorkDays:36, agFrameWorkDays:13, envelopeWorkDays:9, partitionWorkDays:7, mepRoughWorkDays:9, interiorWorkDays:11, mepFinishWorkDays:5, elecFireWorkDays:7, commissionWorkDays:55, mepStartLagDays:3, pileStartLagDays:10, siteStartLagDays:20 },
+      rock:{ name:'암반/천공 고난도', desc:'암반/천공/소음제약(공통배수 1.20, 토공·파일↑).', annualNonWorkingDays:70, siteFactor:1.20, tempWorksWorkDays:18, earthworkFoundationWorkDays:95, ugFrameWorkDays:35, agFrameWorkDays:13, envelopeWorkDays:9, partitionWorkDays:7, mepRoughWorkDays:9, interiorWorkDays:11, mepFinishWorkDays:5, elecFireWorkDays:7, commissionWorkDays:55, mepStartLagDays:3, pileStartLagDays:8, siteStartLagDays:20, pileWorkDays:45 },
+      winter:{ name:'동절기/우기(비작업↑)', desc:'동절기·우기로 비작업↑(비작업 95일, 공통배수 1.10).', annualNonWorkingDays:95, siteFactor:1.10, tempWorksWorkDays:16, earthworkFoundationWorkDays:80, ugFrameWorkDays:34, agFrameWorkDays:13, envelopeWorkDays:9, partitionWorkDays:7, mepRoughWorkDays:9, interiorWorkDays:11, mepFinishWorkDays:5, elecFireWorkDays:7, commissionWorkDays:55, mepStartLagDays:3, pileStartLagDays:7, siteStartLagDays:20 }
     };
 
     function applyOfficePresetFromUI() {
       const key = document.getElementById('officePreset')?.value || 'normal';
       applyOfficePreset(key);
     }
-
     function applyOfficePreset(key) {
       const p = OFFICE_PRESETS[key] || OFFICE_PRESETS.normal;
       const setInput = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
@@ -1092,9 +1050,7 @@
 
       chartMode: 'delta',
       ganttMode: 'grouped',
-      sliderCollapsed: {},
-
-      targetUserTouched: false
+      sliderCollapsed: {}
     };
 
     let costChart = null;
@@ -1123,23 +1079,20 @@
       if (!task) return 0;
       if (task.normalDur === task.crashDur) return 0;
       if (!isFinite(task.normalCost) || !isFinite(task.crashCost)) return 0;
-
       const den = task.normalDur - task.crashDur;
       if (den <= 0) return 0;
-
       const slope = (task.crashCost - task.normalCost) / den;
       return isFinite(slope) && slope > 0 ? slope : 0;
     }
 
     // ===== Bromilow (civil/plant) =====
     function bromilowDuration(baseDirectCost, K, B) {
-      const C = Math.max(0.0001, baseDirectCost); // 백만
-      // 단위가 다르지만 여기선 "일수 규모 산정" 참고용: C를 그대로 넣지 않고 억 단위로 스케일
-      const C_uk = Math.max(0.0001, C / 100); // 억
+      const C = Math.max(0.0001, baseDirectCost);
+      const C_uk = Math.max(0.0001, C / 100); // 억 단위 스케일
       return Math.max(10, Math.round(K * Math.pow(C_uk, B)));
     }
 
-    // ===== Office WBS Builder (building/office 공통으로 사용) =====
+    // ===== Office WBS Builder =====
     function buildOfficeWBS() {
       const tasks = [];
 
@@ -1208,11 +1161,9 @@
 
       let id = 1;
 
-      // 착공 준비(달력일 고정)
       const idStart = id++;
       makeTask(idStart, '착공 및 준비기간', Math.max(1, state.startAdminDays), 1.0, 0, 1.0, []);
 
-      // 철거(옵션)
       let idDemo = null;
       if ((state.demolitionDays || 0) > 0) {
         idDemo = id++;
@@ -1221,19 +1172,16 @@
         ]);
       }
 
-      // 가설공사
       const idTemp = id++;
       makeTask(idTemp, '가설공사(현장설비·동선·가설전기)', tempWorks, 0.95, cost.tempWorks, 1.10, [
         { pred: (idDemo ?? idStart), type: 'FS', lag: 0 }
       ]);
 
-      // 흙막이·토공·기초
       const idEarth = id++;
       makeTask(idEarth, '흙막이·토공·기초', earthworkFound, 0.90, cost.earthwork, 1.20, [
         { pred: idTemp, type: 'FS', lag: 0 }
       ]);
 
-      // 파일(옵션): 가설 완료 후 + 토공 착수 SS lag
       let idPile = null;
       if ((state.pileWorkDays || 0) > 0) {
         idPile = id++;
@@ -1243,7 +1191,6 @@
         ]);
       }
 
-      // 지하 골조
       let idBasement = null;
       if (ugFloors > 0) {
         idBasement = id++;
@@ -1252,7 +1199,6 @@
         makeTask(idBasement, `지하 골조공사(B${ugFloors})`, ugFrame * ugFloors, 0.90, cost.basementFrame, 1.60, deps);
       }
 
-      // 층 반복 비용 배분
       const frameCostPerFloor = cost.superFrame / effectiveAG;
       const envCostPerFloor = cost.envelope / effectiveAG;
       const partCostPerFloor = cost.partition / effectiveAG;
@@ -1307,7 +1253,6 @@
         ]);
         mepFinishIds.push(idMepF);
 
-        // 전기·통신·소방(별도): 비용 0(표시)이나 일정에는 포함
         const idEF = id++;
         makeTask(idEF, `전기·통신·소방 F${fno} (별도)`, elecFire, 0.85, 0, 1.0, [
           { pred: idFrame, type: 'FS', lag: 0 }
@@ -1315,20 +1260,17 @@
         elecFireIds.push(idEF);
       }
 
-      // 부대토목·조경(병렬)
       const idSite = id++;
       makeTask(idSite, '부대토목·조경', cal(f(30)), 0.85, cost.site, 1.20, [
         { pred: frameIds[0], type: 'SS', lag: siteStartLag }
       ]);
 
-      // TAB·시운전(전체)
       const idComm = id++;
       const commDeps = [];
       mepFinishIds.forEach(pid => commDeps.push({ pred: pid, type: 'FS', lag: 0 }));
       elecFireIds.forEach(pid => commDeps.push({ pred: pid, type: 'FS', lag: 0 }));
       makeTask(idComm, 'TAB·시운전·성능검증', commissioning, 0.90, total * 0.01, 1.30, commDeps);
 
-      // 준공·인허가(달력일 고정)
       const idClose = id++;
       makeTask(idClose, '준공서류·검사·인허가', Math.max(1, state.endAdminDays), 1.0, 0, 1.0, [
         { pred: idComm, type: 'FS', lag: 0 },
@@ -1406,7 +1348,6 @@
       ids.forEach(id => { map[id].ef = map[id].es + map[id].currentDur; });
       const projectDur = Math.max(...ids.map(id => map[id].ef));
 
-      // Latest start init
       ids.forEach(id => { map[id].ls = projectDur - map[id].currentDur; });
 
       // Backward relaxation
@@ -1589,11 +1530,9 @@
       const pts = state.simulationPoints;
       if (!pts || pts.length === 0) return null;
 
-      // exact
       const exact = pts.find(p => p.duration === duration);
       if (exact) return { ...exact, duration };
 
-      // find neighbors
       let left = null, right = null;
       for (let i = 0; i < pts.length; i++) {
         const p = pts[i];
@@ -1613,7 +1552,6 @@
         direct: lerp(left.direct, right.direct),
         indirect: lerp(left.indirect, right.indirect),
         total: lerp(left.total, right.total),
-        // state는 보간 불가. 비용 산정용 포인트에서는 state 제거
         state: null
       };
     }
@@ -1625,7 +1563,7 @@
       return best;
     }
 
-    // ===== U-Curve data generation (stagnation 대응 + argmin 보정) =====
+    // ===== U-Curve data generation =====
     function generateTradeOffData() {
       let simTasks = JSON.parse(JSON.stringify(state.tasks)).map(t => ({ ...t, currentDur: t.normalDur }));
       let points = [];
@@ -1666,7 +1604,6 @@
         if (!isDelay && total < minTotalCost) { minTotalCost = total; optimal = pt; }
       };
 
-      // right side: make dense (every day)
       const maxRight = Math.max(
         baseCPM.projectDur,
         state.targetNormalDuration,
@@ -1675,11 +1612,8 @@
       ) + 60;
 
       for (let dur = maxRight; dur > baseCPM.projectDur; dur--) record(simTasks, true, dur);
-
-      // baseline
       record(simTasks);
 
-      // left side: min-cut crashing with stagnation allowance
       let guard = 0;
       let stagnation = 0;
       const MAX_STAGNATION = 60;
@@ -1716,10 +1650,9 @@
     }
 
     // ===== MC verification =====
-    function verifyMCPoint(metrics) {
+    function verifyMCPoint() {
       if (!state.simulationPoints || state.simulationPoints.length === 0) return { ok: false, msg: '포인트 없음' };
-      const pts = state.simulationPoints;
-      const best = findArgMinPoint(pts);
+      const best = findArgMinPoint(state.simulationPoints);
       if (!best) return { ok: false, msg: 'argmin 실패' };
 
       const opt = state.optimalPoint;
@@ -1756,152 +1689,16 @@
       setVal('dashOptimalDuration', state.optimalPoint?.duration ?? '--');
     }
 
-    // ===== Comparison Table =====
-    function updateComparisonTable(currentMetrics) {
-      const baseDur = state.normalCPM.projectDur;
-      const baselinePt = costAtDuration(baseDur);
-      if (!baselinePt) return;
-
-      const stdPt = costAtDuration(state.standardDuration);
-      const conPt = costAtDuration(state.targetNormalDuration);
-      const optPt = state.optimalPoint ? { ...state.optimalPoint, duration: state.optimalPoint.duration } : null;
-
-      const adjDiff = currentMetrics.duration - baselinePt.duration;
-      let adjName = '공사기간조정';
-      if (adjDiff < 0) adjName = `공사기간조정(단축 ${Math.abs(adjDiff)}일)`;
-      else if (adjDiff > 0) adjName = `공사기간조정(연장 +${adjDiff}일)`;
-      else adjName = `공사기간조정(변경 없음)`;
-
-      const scenarios = [];
-      if (stdPt) scenarios.push({ id: 'std', name: '표준공기(참고)', point: stdPt, badge: 'bg-amber-500', rowClass: 'bg-amber-50/40' });
-      if (conPt) scenarios.push({ id: 'con', name: '계약공기', point: conPt, badge: 'bg-slate-500', rowClass: 'bg-slate-50/60' });
-
-      scenarios.push({ id: 'base', name: 'Baseline(적정 공정계획)', point: baselinePt, badge: 'bg-slate-400', rowClass: 'bg-white' });
-      if (optPt) scenarios.push({ id: 'opt', name: '최소비용(MC)', point: optPt, badge: 'bg-emerald-500', rowClass: 'bg-emerald-50/40' });
-
-      scenarios.push({ id: 'adj', name: adjName, point: currentMetrics, badge: 'bg-blue-600', rowClass: 'bg-blue-50/50 border-l-4 border-blue-400' });
-
-      scenarios.sort((a, b) => b.point.duration - a.point.duration);
-
-      const tbody = document.getElementById('comparisonTableBody');
-      if (!tbody) return;
-      tbody.innerHTML = '';
-
-      scenarios.forEach(sc => {
-        const diffDays = sc.point.duration - baselinePt.duration;
-        const diffTotal = sc.point.total - baselinePt.total;
-
-        const diffDaysStr = diffDays > 0 ? `+${diffDays}일` : diffDays < 0 ? `${diffDays}일` : '-';
-        const diffDaysColor = diffDays > 0 ? 'text-rose-500' : diffDays < 0 ? 'text-blue-600' : 'text-slate-400';
-
-        const diffTotalStr = (diffTotal > 0 ? '+' : '') + formatCurrency(diffTotal);
-        const isAdj = sc.id === 'adj';
-
-        const tr = document.createElement('tr');
-        tr.className = `border-b border-slate-100 last:border-0 transition-colors ${sc.rowClass}`;
-        tr.innerHTML = `
-          <td class="py-4 px-4 font-bold flex items-center gap-2 ${isAdj ? 'text-blue-900' : 'text-slate-700'}">
-            <div class="w-3 h-3 rounded-full ${sc.badge}"></div> ${sc.name}
-          </td>
-          <td class="py-4 px-3 text-center font-black border-l border-slate-100 text-base ${isAdj ? 'text-blue-700' : ''}">${Math.round(sc.point.duration)}일</td>
-          <td class="py-4 px-3 text-center font-bold text-sm ${diffDaysColor}">${diffDaysStr}</td>
-          <td class="py-4 px-3 text-right text-slate-500 border-l border-slate-100">${formatCurrency(sc.point.direct)}</td>
-          <td class="py-4 px-3 text-right text-slate-500">${formatCurrency(sc.point.indirect)}</td>
-          <td class="py-4 px-3 text-right font-black text-base ${isAdj ? 'text-blue-700 bg-blue-100/30' : 'text-slate-800 bg-slate-100/30'}">${formatCurrency(sc.point.total)}</td>
-          <td class="py-4 px-3 text-right font-black text-sm ${diffTotal > 0 ? 'text-rose-500' : diffTotal < 0 ? 'text-emerald-500' : 'text-slate-400'} border-l border-slate-100">${diffTotalStr}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    // ===== Chart =====
-    function toggleChartMode() {
-      state.chartMode = state.chartMode === 'delta' ? 'total' : 'delta';
-      const btn = document.getElementById('chartModeBtn');
-      if (btn) {
-        btn.innerHTML = state.chartMode === 'delta'
-          ? '<i class="fa-solid fa-eye-low-beam"></i> <span>변동분만 보기</span>'
-          : '<i class="fa-solid fa-eye"></i> <span>전체 규모 보기</span>';
-      }
-      updateChart();
-    }
-
-    function updateChart() {
-      const canvas = document.getElementById('costCurveChart');
-      if (!canvas) return;
-
-      const ctx = canvas.getContext('2d');
-      const data = state.simulationPoints;
-      const basePt = costAtDuration(state.normalCPM.projectDur);
-      if (!basePt) return;
-
-      const baseSum = basePt.total;
-      const baseDir = basePt.direct;
-      const baseInd = basePt.indirect;
-
-      const prepare = (val, base) => state.chartMode === 'delta' ? (val - base) : val;
-      const currentMetrics = calculateMetrics(state.tasks);
-
-      const viewMaxDur = Math.max(
-        state.targetNormalDuration,
-        state.standardDuration,
-        state.optimalPoint?.duration || 0,
-        currentMetrics.duration,
-        state.normalCPM.projectDur
-      );
-      const viewMinDur = Math.min(
-        state.targetNormalDuration,
-        state.standardDuration,
-        state.optimalPoint?.duration || Infinity,
-        currentMetrics.duration,
-        state.normalCPM.projectDur
-      );
-
-      const chartXMin = Math.floor(Math.max(1, viewMinDur - 40) / 10) * 10;
-      const chartXMax = Math.ceil((viewMaxDur + 60) / 10) * 10;
-      const visiblePoints = data.filter(d => d.duration >= chartXMin && d.duration <= chartXMax);
-
-      const chartData = {
-        datasets: [
-          { label: '총 공사비', data: visiblePoints.map(p => ({ x: p.duration, y: prepare(p.total, baseSum) })), borderColor: '#2563eb', borderWidth: 4, pointRadius: 0, tension: 0.4, fill: false },
-          { label: '직접비 누계', data: visiblePoints.map(p => ({ x: p.duration, y: prepare(p.direct, baseDir) })), borderColor: 'rgba(244, 63, 94, 0.5)', borderWidth: 2, borderDash: [5, 5], pointRadius: 0, tension: 0.4 },
-          { label: '간접비 누계', data: visiblePoints.map(p => ({ x: p.duration, y: prepare(p.indirect, baseInd) })), borderColor: 'rgba(16, 185, 129, 0.5)', borderWidth: 2, borderDash: [5, 5], pointRadius: 0, tension: 0.4 }
-        ]
-      };
-
-      if (costChart) costChart.destroy();
-
-      costChart = new Chart(ctx, {
-        type: 'line',
-        data: chartData,
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          layout: { padding: { top: 120 } },
-          scales: {
-            x: { type: 'linear', min: chartXMin, max: chartXMax, title: { display: true, text: '공사 기간 (일)', font: { weight: 'bold' } }, grid: { display: false }, ticks: { stepSize: 10 } },
-            y: { title: { display: true, text: state.chartMode === 'delta' ? '비용 증감 (백만원)' : '총 비용 (백만원)', font: { weight: 'bold' } }, ticks: { callback: v => v.toLocaleString() } }
-          },
-          plugins: {
-            legend: { display: false },
-            tooltip: { mode: 'index', intersect: false },
-            verticalLines: {
-              lines: [
-                { x: state.standardDuration, text: '① 표준공기(참고)', color: '#f59e0b', dash: [4, 4] },
-                { x: state.targetNormalDuration, text: '② 계약공기', color: '#64748b', dash: [4, 4] },
-                { x: state.optimalPoint?.duration || 0, text: '③ 최소비용', color: '#10b981', dash: [] },
-                { x: currentMetrics.duration, text: '④ 공사기간조정', color: '#2563eb', dash: [] }
-              ]
-            }
-          }
-        }
-      });
-    }
-
     // ===== Target UI =====
     function validateTargetDays() {
       const input = document.getElementById('targetDaysInput');
-      if (!input || input.value === '') { updateTargetUI(); return; }
+      if (!input) return;
+
+      // 비우면 계약공기 모드 유지
+      if (input.value === '' || input.value === undefined) {
+        updateTargetUI();
+        return;
+      }
 
       let val = parseInt(input.value);
       if (isNaN(val)) { input.value = ''; updateTargetUI(); return; }
@@ -1920,12 +1717,13 @@
     }
 
     function adjustTargetDays(delta) {
-      markTargetTouched();
       const input = document.getElementById('targetDaysInput');
       if (!input) return;
 
+      // 계약모드(비어있음)에서 +/- 누르면 baseline 대비 0부터 시작
       let val = parseInt(input.value);
       if (isNaN(val)) val = 0;
+
       val += delta;
 
       const minPossibleDur = state.simulationPoints[0].duration;
@@ -1948,67 +1746,118 @@
       const maxCrashPossible = state.normalCPM.projectDur - minPossibleDur;
       setVal('maxCrashPossibleDisplay', maxCrashPossible);
 
-      const input = document.getElementById('targetDaysInput');
-      const rawValue = input?.value;
-      const isEmpty = rawValue === '' || rawValue === undefined;
+      const baselineDur = state.normalCPM.projectDur;
+      const contractDur = state.targetNormalDuration;
 
-      let diffDaysInput = parseInt(rawValue);
-      if (isNaN(diffDaysInput)) diffDaysInput = 0;
+      // 계약모드
+      if (isContractMode()) {
+        setVal(
+          'targetDaysDiff',
+          `<span class="text-slate-300 bg-slate-700/50 px-3 py-1 rounded-full text-[11px]">
+            <i class="fa-solid fa-file-signature mr-1"></i>현재: <strong class="text-blue-300 text-xs">계약공기</strong> 반영
+            (목표 <strong class="text-blue-300 text-xs">${Math.round(contractDur)}일</strong>)
+          </span>`,
+          true
+        );
 
-      const normalDur = state.normalCPM.projectDur;
-      let targetDuration = normalDur + diffDaysInput;
-
-      const maxPointDur = state.simulationPoints[state.simulationPoints.length - 1].duration;
-      if (targetDuration < minPossibleDur) targetDuration = minPossibleDur;
-      if (targetDuration > maxPointDur) targetDuration = maxPointDur;
-
-      let diffDaysHtml = '';
-
-      if (isEmpty || isNaN(parseInt(rawValue))) {
-        diffDaysHtml = `<span class="text-slate-500"><i class="fa-solid fa-keyboard mr-1"></i>조정 일수를 입력하세요</span>`;
-        setVal('targetTotalDiff', `<span class="text-slate-500">--</span>`, true);
-      } else {
-        diffDaysHtml = `<span class="text-slate-300 bg-slate-700/50 px-3 py-1 rounded-full text-[11px]">
-          <i class="fa-solid fa-flag-checkered mr-1"></i>목표 공사기간:
-          <strong class="text-blue-300 text-xs">${Math.round(targetDuration)}일</strong>
-        </span>`;
-
-        const targetPointCost = costAtDuration(targetDuration);
-        const normalPtCost = costAtDuration(state.normalCPM.projectDur);
-        if (targetPointCost && normalPtCost) {
-          const diff = targetPointCost.total - normalPtCost.total;
+        const contractPt = costAtDuration(contractDur);
+        const basePt = costAtDuration(baselineDur);
+        if (contractPt && basePt) {
+          const diff = contractPt.total - basePt.total;
           const diffStr = (diff > 0 ? '+' : '') + formatCurrency(diff) + '백만';
           const color = diff > 0 ? 'text-rose-400' : diff < 0 ? 'text-emerald-400' : 'text-slate-300';
           setVal('targetTotalDiff', `<span class="${color}">${diffStr}</span>`, true);
         } else {
           setVal('targetTotalDiff', `<span class="text-slate-500">--</span>`, true);
         }
+        return;
       }
 
-      setVal('targetDaysDiff', diffDaysHtml, true);
-    }
+      // 조정모드
+      const input = document.getElementById('targetDaysInput');
+      const rawValue = input?.value;
+      let diffDaysInput = parseInt(rawValue);
+      if (isNaN(diffDaysInput)) diffDaysInput = 0;
 
-    function handleSliderChange(id, val) {
-      const task = state.tasks.find(t => t.id === id);
-      if (task) task.currentDur = parseInt(val);
-      calculateCurrentCPM();
-      renderSliders();
-      updateUI();
+      let targetDuration = baselineDur + diffDaysInput;
+      const maxPointDur = state.simulationPoints[state.simulationPoints.length - 1].duration;
+      if (targetDuration < minPossibleDur) targetDuration = minPossibleDur;
+      if (targetDuration > maxPointDur) targetDuration = maxPointDur;
+
+      setVal(
+        'targetDaysDiff',
+        `<span class="text-slate-300 bg-slate-700/50 px-3 py-1 rounded-full text-[11px]">
+          <i class="fa-solid fa-flag-checkered mr-1"></i>목표 공사기간:
+          <strong class="text-blue-300 text-xs">${Math.round(targetDuration)}일</strong>
+        </span>`,
+        true
+      );
+
+      const targetPt = costAtDuration(targetDuration);
+      const basePt = costAtDuration(baselineDur);
+      if (targetPt && basePt) {
+        const diff = targetPt.total - basePt.total;
+        const diffStr = (diff > 0 ? '+' : '') + formatCurrency(diff) + '백만';
+        const color = diff > 0 ? 'text-rose-400' : diff < 0 ? 'text-emerald-400' : 'text-slate-300';
+        setVal('targetTotalDiff', `<span class="${color}">${diffStr}</span>`, true);
+      } else {
+        setVal('targetTotalDiff', `<span class="text-slate-500">--</span>`, true);
+      }
     }
 
     function applyTargetDuration() {
       if (!state.simulationPoints || state.simulationPoints.length === 0) return;
 
-      const input = document.getElementById('targetDaysInput');
-      let diffDays = parseInt(input?.value);
-      if (isNaN(diffDays)) diffDays = 0;
+      const baselineDur = state.normalCPM.projectDur;
 
-      const targetDuration = state.normalCPM.projectDur + diffDays;
+      let targetDuration = baselineDur;
+      if (isContractMode()) {
+        targetDuration = state.targetNormalDuration;
+      } else {
+        const input = document.getElementById('targetDaysInput');
+        let diffDays = parseInt(input?.value);
+        if (isNaN(diffDays)) diffDays = 0;
+        targetDuration = baselineDur + diffDays;
+      }
+
       const pt = nearestPointByDuration(targetDuration);
-      if (!pt || !pt.state) return;
+      if (pt && pt.state) {
+        state.tasks = JSON.parse(JSON.stringify(pt.state));
+        calculateCurrentCPM();
+        renderSliders();
+      }
+      updateUI();
+    }
 
-      state.tasks = JSON.parse(JSON.stringify(pt.state));
+    // ===== Slider events =====
+    function handleSliderChange(id, val) {
+      const task = state.tasks.find(t => t.id === id);
+      if (task) task.currentDur = parseInt(val);
+
       calculateCurrentCPM();
+      // 사용자가 슬라이더로 직접 바꾸면 "조정모드"로 전환되도록 입력값 동기화
+      syncTargetInputToCurrentDuration();
+
+      renderSliders();
+      updateUI();
+    }
+
+    function handleGroupSliderChange(groupKey, rawVal) {
+      const v = parseInt(rawVal);
+      if (!isFinite(v)) return;
+
+      const groups = buildSliderGroups();
+      const g = groups.find(x => x.key === groupKey);
+      if (!g) return;
+
+      g.items.forEach(it => {
+        const t = it.task;
+        t.currentDur = clamp(v, t.crashDur, t.normalDur);
+      });
+
+      calculateCurrentCPM();
+      syncTargetInputToCurrentDuration();
+
       renderSliders();
       updateUI();
     }
@@ -2067,23 +1916,6 @@
     function toggleSliderGroup(key) {
       state.sliderCollapsed[key] = !state.sliderCollapsed[key];
       renderSliders();
-    }
-
-    function handleGroupSliderChange(groupKey, rawVal) {
-      const v = parseInt(rawVal);
-      if (!isFinite(v)) return;
-      const groups = buildSliderGroups();
-      const g = groups.find(x => x.key === groupKey);
-      if (!g) return;
-
-      g.items.forEach(it => {
-        const t = it.task;
-        t.currentDur = clamp(v, t.crashDur, t.normalDur);
-      });
-
-      calculateCurrentCPM();
-      renderSliders();
-      updateUI();
     }
 
     function renderSliders() {
@@ -2274,7 +2106,6 @@
       for (let i = 0; i <= maxDur; i += 30) ticks.push(i);
       if (ticks[ticks.length - 1] !== maxDur && (maxDur - ticks[ticks.length - 1]) > 10) ticks.push(maxDur);
 
-      // background grid
       let bg = `<div class="absolute top-0 bottom-12 left-[112px] right-0 pointer-events-none z-0">`;
       ticks.forEach(day => {
         const ratio = (day / maxDur) * 100;
@@ -2282,7 +2113,6 @@
       });
       bg += `</div>`;
 
-      // detail mode
       if (state.ganttMode === 'detail') {
         let html = bg;
         html += `<div class="relative z-10 space-y-4">`;
@@ -2321,7 +2151,6 @@
         });
 
         html += `</div>`;
-
         html += `
           <div class="flex items-start gap-4 mt-4 pt-3 border-t border-slate-200 relative z-10 bg-white">
             <div class="w-24 shrink-0 text-[10px] font-bold text-slate-400 text-right mt-0.5">누적 공사기간</div>
@@ -2340,7 +2169,6 @@
         return;
       }
 
-      // grouped mode
       const lanes = buildGanttLanes();
       const trackGap = 20, topPad = 10, baseLineH = 3, curBarH = 9, baseYOffset = 3, curYOffset = 10;
 
@@ -2379,7 +2207,6 @@
                  style="left:${cLeft}%; width:${cWidth}%; top:${yCur}px; height:${curBarH}px"></div>
           `;
 
-          // label on top of current bar
           if (seg.label) {
             const center = clamp(cLeft + (cWidth / 2), 0.5, 99.5);
             const yLabel = Math.max(0, yCur - 14);
@@ -2396,7 +2223,6 @@
       });
 
       html += `</div>`;
-
       html += `
         <div class="flex items-start gap-4 mt-4 pt-3 border-t border-slate-200 relative z-10 bg-white">
           <div class="w-24 shrink-0 text-[10px] font-bold text-slate-400 text-right mt-0.5">누적 공사기간</div>
@@ -2443,24 +2269,188 @@
       days = clamp(days, 0, maxDur);
       label.innerText = `누적 ${days}일`;
     }
-
     function handleGanttMouseLeave() {
       const crosshair = document.getElementById('ganttCrosshair');
       if (crosshair) crosshair.style.display = 'none';
     }
 
-    // ===== Report update =====
-    function updateReportBlocks(metrics) {
+    // ===== Comparison Table =====
+    function updateComparisonTable() {
+      const baselineDur = state.normalCPM.projectDur;
+      const baselinePt = costAtDuration(baselineDur);
+      if (!baselinePt) return;
+
+      const stdPt = costAtDuration(state.standardDuration);
+      const conPt = costAtDuration(state.targetNormalDuration);
+      const optPt = state.optimalPoint ? { ...state.optimalPoint, duration: state.optimalPoint.duration } : null;
+
+      const currentDisplay = getCurrentScenarioDisplay();
+
+      const scenarios = [];
+      if (stdPt) scenarios.push({ id: 'std', name: '표준공기(참고)', point: stdPt, badge: 'bg-amber-500', rowClass: 'bg-amber-50/40' });
+
+      // 계약모드(입력 비움)면 "계약공기(현재)"만 하이라이트로 보여주고, 계약공기 행은 중복 방지
+      if (isContractMode()) {
+        if (conPt) scenarios.push({ id: 'currcon', name: '계약공기(현재)', point: { ...conPt, duration: state.targetNormalDuration }, badge: 'bg-blue-600', rowClass: 'bg-blue-50/50 border-l-4 border-blue-400' });
+      } else {
+        if (conPt) scenarios.push({ id: 'con', name: '계약공기', point: conPt, badge: 'bg-slate-500', rowClass: 'bg-slate-50/60' });
+      }
+
+      scenarios.push({ id: 'base', name: 'Baseline(적정 공정계획)', point: baselinePt, badge: 'bg-slate-400', rowClass: 'bg-white' });
+      if (optPt) scenarios.push({ id: 'opt', name: '최소비용(MC)', point: optPt, badge: 'bg-emerald-500', rowClass: 'bg-emerald-50/40' });
+
+      // 조정모드에서만 공사기간조정 행 표시
+      if (!isContractMode()) {
+        const adjDiff = Math.round(currentDisplay.duration - baselinePt.duration);
+        let adjName = '공사기간조정';
+        if (adjDiff < 0) adjName = `공사기간조정(단축 ${Math.abs(adjDiff)}일)`;
+        else if (adjDiff > 0) adjName = `공사기간조정(연장 +${adjDiff}일)`;
+        else adjName = `공사기간조정(변경 없음)`;
+
+        scenarios.push({ id: 'adj', name: adjName, point: currentDisplay, badge: 'bg-blue-600', rowClass: 'bg-blue-50/50 border-l-4 border-blue-400' });
+      }
+
+      scenarios.sort((a, b) => b.point.duration - a.point.duration);
+
+      const tbody = document.getElementById('comparisonTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      scenarios.forEach(sc => {
+        const diffDays = Math.round(sc.point.duration - baselinePt.duration);
+        const diffTotal = sc.point.total - baselinePt.total;
+
+        const diffDaysStr = diffDays > 0 ? `+${diffDays}일` : diffDays < 0 ? `${diffDays}일` : '-';
+        const diffDaysColor = diffDays > 0 ? 'text-rose-500' : diffDays < 0 ? 'text-blue-600' : 'text-slate-400';
+
+        const diffTotalStr = (diffTotal > 0 ? '+' : '') + formatCurrency(diffTotal);
+        const isHighlight = (sc.id === 'adj' || sc.id === 'currcon');
+
+        const tr = document.createElement('tr');
+        tr.className = `border-b border-slate-100 last:border-0 transition-colors ${sc.rowClass}`;
+        tr.innerHTML = `
+          <td class="py-4 px-4 font-bold flex items-center gap-2 ${isHighlight ? 'text-blue-900' : 'text-slate-700'}">
+            <div class="w-3 h-3 rounded-full ${sc.badge}"></div> ${sc.name}
+          </td>
+          <td class="py-4 px-3 text-center font-black border-l border-slate-100 text-base ${isHighlight ? 'text-blue-700' : ''}">${Math.round(sc.point.duration)}일</td>
+          <td class="py-4 px-3 text-center font-bold text-sm ${diffDaysColor}">${diffDaysStr}</td>
+          <td class="py-4 px-3 text-right text-slate-500 border-l border-slate-100">${formatCurrency(sc.point.direct)}</td>
+          <td class="py-4 px-3 text-right text-slate-500">${formatCurrency(sc.point.indirect)}</td>
+          <td class="py-4 px-3 text-right font-black text-base ${isHighlight ? 'text-blue-700 bg-blue-100/30' : 'text-slate-800 bg-slate-100/30'}">${formatCurrency(sc.point.total)}</td>
+          <td class="py-4 px-3 text-right font-black text-sm ${diffTotal > 0 ? 'text-rose-500' : diffTotal < 0 ? 'text-emerald-500' : 'text-slate-400'} border-l border-slate-100">${diffTotalStr}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // ===== Chart =====
+    function toggleChartMode() {
+      state.chartMode = state.chartMode === 'delta' ? 'total' : 'delta';
+      const btn = document.getElementById('chartModeBtn');
+      if (btn) {
+        btn.innerHTML = state.chartMode === 'delta'
+          ? '<i class="fa-solid fa-eye-low-beam"></i> <span>변동분만 보기</span>'
+          : '<i class="fa-solid fa-eye"></i> <span>전체 규모 보기</span>';
+      }
+      updateChart();
+    }
+
+    function updateChart() {
+      const canvas = document.getElementById('costCurveChart');
+      if (!canvas) return;
+
+      const ctx = canvas.getContext('2d');
+      const data = state.simulationPoints;
+
       const basePt = costAtDuration(state.normalCPM.projectDur);
-      const deltaCost = basePt ? (metrics.total - basePt.total) : 0;
+      if (!basePt) return;
+
+      const baseSum = basePt.total;
+      const baseDir = basePt.direct;
+      const baseInd = basePt.indirect;
+
+      const prepare = (val, base) => state.chartMode === 'delta' ? (val - base) : val;
+
+      const currentDisplay = getCurrentScenarioDisplay();
+      const currentX = currentDisplay.duration;
+      const currentLabel = isContractMode() ? '④ 계약공기(현재)' : '④ 공사기간조정';
+
+      const viewMaxDur = Math.max(
+        state.targetNormalDuration,
+        state.standardDuration,
+        state.optimalPoint?.duration || 0,
+        currentX,
+        state.normalCPM.projectDur
+      );
+      const viewMinDur = Math.min(
+        state.targetNormalDuration,
+        state.standardDuration,
+        state.optimalPoint?.duration || Infinity,
+        currentX,
+        state.normalCPM.projectDur
+      );
+
+      const chartXMin = Math.floor(Math.max(1, viewMinDur - 40) / 10) * 10;
+      const chartXMax = Math.ceil((viewMaxDur + 60) / 10) * 10;
+      const visiblePoints = data.filter(d => d.duration >= chartXMin && d.duration <= chartXMax);
+
+      const chartData = {
+        datasets: [
+          { label: '총 공사비', data: visiblePoints.map(p => ({ x: p.duration, y: prepare(p.total, baseSum) })), borderColor: '#2563eb', borderWidth: 4, pointRadius: 0, tension: 0.4, fill: false },
+          { label: '직접비 누계', data: visiblePoints.map(p => ({ x: p.duration, y: prepare(p.direct, baseDir) })), borderColor: 'rgba(244, 63, 94, 0.5)', borderWidth: 2, borderDash: [5, 5], pointRadius: 0, tension: 0.4 },
+          { label: '간접비 누계', data: visiblePoints.map(p => ({ x: p.duration, y: prepare(p.indirect, baseInd) })), borderColor: 'rgba(16, 185, 129, 0.5)', borderWidth: 2, borderDash: [5, 5], pointRadius: 0, tension: 0.4 }
+        ]
+      };
+
+      if (costChart) costChart.destroy();
+
+      costChart = new Chart(ctx, {
+        type: 'line',
+        data: chartData,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          layout: { padding: { top: 120 } },
+          scales: {
+            x: { type: 'linear', min: chartXMin, max: chartXMax, title: { display: true, text: '공사 기간 (일)', font: { weight: 'bold' } }, grid: { display: false }, ticks: { stepSize: 10 } },
+            y: { title: { display: true, text: state.chartMode === 'delta' ? '비용 증감 (백만원)' : '총 비용 (백만원)', font: { weight: 'bold' } }, ticks: { callback: v => v.toLocaleString() } }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: { mode: 'index', intersect: false },
+            verticalLines: {
+              lines: [
+                { x: state.standardDuration, text: '① 표준공기(참고)', color: '#f59e0b', dash: [4, 4] },
+                { x: state.targetNormalDuration, text: '② 계약공기', color: '#64748b', dash: [4, 4] },
+                { x: state.optimalPoint?.duration || 0, text: '③ 최소비용', color: '#10b981', dash: [] },
+                { x: currentX, text: currentLabel, color: '#2563eb', dash: [] }
+              ]
+            }
+          }
+        }
+      });
+    }
+
+    // ===== Report update =====
+    function updateReportBlocks() {
+      const baselineDur = state.normalCPM.projectDur;
+      const basePt = costAtDuration(baselineDur);
+      const currentDisplay = getCurrentScenarioDisplay();
+
+      const deltaCost = basePt ? (currentDisplay.total - basePt.total) : 0;
       const deltaStr = (deltaCost > 0 ? '+' : '') + formatCurrency(deltaCost) + '백만';
 
       setVal('reportStandardDuration', state.standardDuration);
       setVal('reportBaselineDuration', state.normalCPM.projectDur);
       setVal('reportContractDuration', state.targetNormalDuration);
       setVal('reportOptimalDuration', state.optimalPoint?.duration ?? '--');
-      setVal('reportCurrentDuration', metrics.duration);
+
+      setVal('reportCurrentDuration', Math.round(currentDisplay.duration));
       setVal('reportCurrentDeltaCost', deltaStr);
+
+      setVal('reportCurrentTitle', isContractMode() ? '계약공기(현재)' : '공사기간조정');
+
+      setVal('legendCurrentLabel', isContractMode() ? '현재=계약공기' : '현재=조정결과');
 
       setVal('reportStdOther', state.facilityCheck?.otherBuilding ?? '--');
       setVal('reportStdCommon', state.facilityCheck?.commonForm ?? '--');
@@ -2480,12 +2470,13 @@
       setVal('reportCF', CF.toFixed(3));
       setVal('reportSF', (state.officeWbs?.siteFactor ?? 1.0).toFixed(2));
 
+      const metrics = calculateMetrics(state.tasks); // 간접/일 표시용
       setVal('reportProjectScale', formatCurrency(state.contractAmount) + '백만');
       setVal('reportBaseDirect', formatCurrency(state.baseDirectCost) + '백만');
       setVal('reportIndirectPerDay', formatCurrency(metrics.indirectPerDay) + '백만');
       setVal('reportIndirectMode', metrics.indirectMode);
 
-      const v = verifyMCPoint(metrics);
+      const v = verifyMCPoint();
       setVal('reportOptimalCheck', v.ok ? `검증: ${v.msg}` : `⚠ ${v.msg}`);
     }
 
@@ -2499,26 +2490,23 @@
 
       updateDashboardKpis();
       updateTargetUI();
-      updateComparisonTable(metrics);
+      updateComparisonTable();
       renderGantt();
       updateChart();
-      updateReportBlocks(metrics);
+      updateReportBlocks();
     }
 
     // ===== Distribute/Build tasks =====
     function distributeTasks() {
-      // facility check first (for UI)
       state.facilityCheck = computeFacilityChecks();
       setVal('facilityCheckOther', state.facilityCheck.otherBuilding);
       setVal('facilityCheckCommon', state.facilityCheck.commonForm);
 
-      // Build tasks by project type
       if (state.projectType === 'civil') {
         state.tasks = buildBromilowWBS(30, 0.30);
       } else if (state.projectType === 'plant') {
         state.tasks = buildBromilowWBS(35, 0.35);
       } else {
-        // office/building
         state.tasks = buildOfficeWBS();
       }
 
@@ -2528,19 +2516,15 @@
       state.wbsBaseDuration = state.normalCPM.projectDur;
       setVal('wbsBaseDurationValue', state.wbsBaseDuration);
 
-      // standard duration as reference
       state.standardDuration = (state.projectType === 'office')
         ? state.facilityCheck.otherBuilding
         : state.facilityCheck.commonForm;
 
       generateTradeOffData();
 
-      // 초기: 계약공기에 맞춰 diff 자동 세팅(사용자가 건드리면 유지)
-      if (!state.targetUserTouched) {
-        const autoDiff = state.targetNormalDuration - state.normalCPM.projectDur;
-        const input = document.getElementById('targetDaysInput');
-        if (input) input.value = autoDiff;
-      }
+      // ✅ 기본 상태: "공사기간조정 없음" = 입력 비움 = 계약공기(현재)
+      const input = document.getElementById('targetDaysInput');
+      if (input) input.value = '';
 
       applyTargetDuration();
     }
@@ -2577,10 +2561,10 @@
 
       state.projectType = document.getElementById('projectType')?.value || 'office';
 
-      // toggle UI containers based on type
       const scaleContainer = document.getElementById('buildingScaleContainer');
       const officeContainer = document.getElementById('officeWbsOptions');
       const specialContainer = document.getElementById('specialWorksContainer');
+
       if (state.projectType === 'civil' || state.projectType === 'plant') {
         if (scaleContainer) scaleContainer.style.display = 'none';
         if (officeContainer) officeContainer.style.display = 'none';
