@@ -316,15 +316,12 @@
                      class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold" />
             </div>
 
+            <!-- changed: numeric siteFactor -->
             <div class="space-y-1.5">
               <label class="text-[10px] font-bold text-slate-600 italic">현장 난이도(공통 배수)</label>
-              <select id="officeSiteFactor" onchange="updateGlobalState()"
-                      class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold cursor-pointer">
-                <option value="0.9">여유(0.9)</option>
-                <option value="1.0" selected>보통(1.0)</option>
-                <option value="1.15">협소/도심(1.15)</option>
-                <option value="1.30">초협소/복잡(1.30)</option>
-              </select>
+              <input type="number" id="officeSiteFactor" value="1.00" min="0.70" max="1.60" step="0.01" onchange="updateGlobalState()"
+                     class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold" />
+              <p class="text-[10px] text-slate-400 font-bold mt-1">권장 범위 0.80~1.40</p>
             </div>
 
             <div class="space-y-1.5 col-span-2 md:col-span-4">
@@ -337,6 +334,94 @@
           <p class="mt-3 text-[11px] font-bold text-emerald-700/80">
             ※ 작업일 입력값은 연간 비작업일 보정(캘린더) + 현장 난이도(공통 배수)가 적용되어 “달력일”로 변환됩니다.
           </p>
+
+          <!-- ✅ Auto Calibration Panel -->
+          <div id="autoCalibPanel" class="mt-6 bg-white border border-emerald-200 rounded-2xl p-5">
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <div class="text-[11px] font-black text-emerald-700 uppercase tracking-wider flex items-center gap-2">
+                  <i class="fa-solid fa-wand-magic-sparkles"></i> 자동 보정(추천) - 가정값 캘리브레이션
+                </div>
+                <p class="text-[11px] text-slate-500 font-bold mt-2">
+                  목표(계약공기/표준공기)에 맞도록 <span class="text-slate-800">Baseline(WBS+CPM)</span>이 근접하도록
+                  <span class="text-slate-800">현장배수/공종 작업일</span>을 제안합니다.
+                </p>
+              </div>
+              <div class="text-right">
+                <div class="text-[11px] text-slate-400 font-black">현재 Baseline</div>
+                <div class="text-xl font-black text-slate-900"><span id="calibCurrentBaseline">--</span></div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                <div class="text-[10px] font-black text-slate-500 uppercase">계약공기</div>
+                <div class="text-lg font-black text-slate-800"><span id="calibTargetContract">--</span></div>
+              </div>
+              <div class="bg-amber-50/40 border border-amber-100 rounded-xl p-3">
+                <div class="text-[10px] font-black text-amber-700 uppercase">표준공기(참고)</div>
+                <div class="text-lg font-black text-amber-700"><span id="calibTargetStandard">--</span></div>
+              </div>
+              <div class="bg-emerald-50/40 border border-emerald-100 rounded-xl p-3">
+                <div class="text-[10px] font-black text-emerald-700 uppercase">추천 적용 시 Baseline</div>
+                <div class="text-lg font-black text-emerald-700"><span id="calibPredBaseline">--</span></div>
+                <div class="text-[11px] font-bold text-slate-500">오차: <span id="calibPredDiff">--</span></div>
+              </div>
+            </div>
+
+            <div class="flex flex-col md:flex-row gap-3 mt-4">
+              <div class="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 flex-1">
+                <label class="flex items-center gap-2 text-[11px] font-black text-slate-700">
+                  <input type="checkbox" id="calibUseSiteFactor" checked class="accent-emerald-600" />
+                  현장난이도(siteFactor) 자동 탐색
+                </label>
+                <label class="flex items-center gap-2 text-[11px] font-black text-slate-700">
+                  <input type="checkbox" id="calibUseFineTune" class="accent-emerald-600" />
+                  고급: 공종 작업일 미세조정(권장 최소)
+                </label>
+              </div>
+
+              <div class="flex gap-2">
+                <button onclick="calcRecommendation('contract')"
+                        class="px-4 py-3 rounded-xl text-xs font-black bg-slate-900 text-white hover:bg-black transition-all shadow">
+                  계약공기 맞춤 추천값 계산
+                </button>
+                <button onclick="calcRecommendation('standard')"
+                        class="px-4 py-3 rounded-xl text-xs font-black bg-amber-600 text-white hover:bg-amber-500 transition-all shadow">
+                  표준공기 맞춤 추천값 계산
+                </button>
+              </div>
+            </div>
+
+            <div class="mt-4 border border-slate-200 rounded-2xl overflow-hidden">
+              <table class="w-full text-sm">
+                <thead class="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 uppercase">
+                  <tr>
+                    <th class="py-3 px-4 text-left">항목</th>
+                    <th class="py-3 px-3 text-right">현재</th>
+                    <th class="py-3 px-3 text-right">추천</th>
+                    <th class="py-3 px-3 text-right">변경</th>
+                  </tr>
+                </thead>
+                <tbody id="calibDiffTableBody" class="bg-white"></tbody>
+              </table>
+            </div>
+
+            <div class="flex flex-col md:flex-row gap-3 mt-4 items-center">
+              <button id="calibApplyBtn" onclick="applyRecommendation()" disabled
+                      class="w-full md:w-auto px-5 py-3 rounded-xl text-xs font-black bg-emerald-600 text-white hover:bg-emerald-500 transition-all shadow disabled:opacity-40 disabled:cursor-not-allowed">
+                추천값 적용
+              </button>
+              <button id="calibUndoBtn" onclick="undoRecommendation()" disabled
+                      class="w-full md:w-auto px-5 py-3 rounded-xl text-xs font-black bg-slate-200 text-slate-700 hover:bg-slate-300 transition-all shadow disabled:opacity-40 disabled:cursor-not-allowed">
+                되돌리기
+              </button>
+
+              <div class="text-[11px] text-slate-500 font-bold md:ml-auto">
+                ※ 적용은 입력값(가정값)만 변경합니다. 공정 네트워크(선후관계)는 유지됩니다.
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -374,7 +459,7 @@
         <h2 class="text-xl font-bold text-slate-900 tracking-tight">종합 분석 대시보드 (Summary & Optimizer)</h2>
       </div>
 
-      <!-- KPI: 표준공기 / 계약공기 / 최소비용 공기 -->
+      <!-- KPI -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div class="bg-amber-50/40 border border-amber-100 rounded-2xl p-5">
           <div class="text-[11px] font-black text-amber-700 uppercase">표준공기(참고)</div>
@@ -432,7 +517,7 @@
                   <div class="flex items-center justify-center gap-3">
                     <button onclick="adjustTargetDays(-1)" class="w-12 h-12 bg-slate-800 hover:bg-slate-700 rounded-xl flex items-center justify-center font-bold text-2xl transition-colors active:scale-95">-</button>
                     <input type="number" id="targetDaysInput" value=""
-                           oninput="onTargetInputChanged()"
+                           oninput="updateTargetUI()"
                            onblur="validateTargetDays()"
                            onkeydown="if(event.key === 'Enter') { validateTargetDays(); applyTargetDuration(); }"
                            placeholder="비우면 계약공기"
@@ -546,7 +631,7 @@
       </div>
     </div>
 
-    <!-- Report -->
+    <!-- Report (요약만 유지) -->
     <div id="report" class="bg-white p-10 md:p-16 rounded-[4rem] shadow-sm border border-slate-200 space-y-10">
       <div class="border-b border-slate-100 pb-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div class="space-y-2">
@@ -555,7 +640,7 @@
           </div>
           <h2 class="text-4xl font-black text-slate-900 tracking-tighter">공기-원가 최적화 분석 보고서</h2>
           <p class="text-slate-400 font-medium text-sm">
-            목적: 표준공기(참고) 파악 → U-Curve 데이터 생성 → 최소비용 공기(MC) 도출 → 단축/연장 시 공사비 변화 산정
+            목적: 표준공기(참고) → U-Curve 생성 → 최소비용(MC) → 단축/연장 시 공사비 변화 산정
           </p>
         </div>
         <div class="text-right">
@@ -564,22 +649,18 @@
         </div>
       </div>
 
-      <!-- Summary Cards -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5">
           <div class="text-[11px] font-black text-slate-500 uppercase">표준공기(참고)</div>
           <div class="text-2xl font-black text-amber-600 mt-1"><span id="reportStandardDuration">--</span><span class="text-sm font-bold text-slate-400 ml-1">일</span></div>
-          <div class="text-[11px] text-slate-500 mt-1">시설물 공식 검증치</div>
         </div>
         <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5">
           <div class="text-[11px] font-black text-slate-500 uppercase">Baseline(적정)</div>
           <div class="text-2xl font-black text-slate-800 mt-1"><span id="reportBaselineDuration">--</span><span class="text-sm font-bold text-slate-400 ml-1">일</span></div>
-          <div class="text-[11px] text-slate-500 mt-1">WBS+CPM 기준</div>
         </div>
         <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5">
           <div class="text-[11px] font-black text-slate-500 uppercase">계약공기</div>
           <div class="text-2xl font-black text-slate-600 mt-1"><span id="reportContractDuration">--</span><span class="text-sm font-bold text-slate-400 ml-1">일</span></div>
-          <div class="text-[11px] text-slate-500 mt-1">입력값</div>
         </div>
         <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5">
           <div class="text-[11px] font-black text-slate-500 uppercase">최소비용(MC)</div>
@@ -590,217 +671,6 @@
           <div class="text-[11px] font-black text-blue-700 uppercase" id="reportCurrentTitle">현재(계약/조정)</div>
           <div class="text-2xl font-black text-blue-700 mt-1"><span id="reportCurrentDuration">--</span><span class="text-sm font-bold text-blue-400 ml-1">일</span></div>
           <div class="text-[11px] text-blue-700/70 mt-1">Δ비용: <span id="reportCurrentDeltaCost">--</span></div>
-          <div class="text-[10px] text-blue-800/70 mt-2">근거: CPM(Project Duration) / 계약모드(입력 비움) 시 계약공기 고정 표시</div>
-        </div>
-      </div>
-
-      <div class="flex flex-wrap gap-6 text-sm text-slate-400 font-bold">
-        <span class="flex items-center gap-1.5"><i class="fa-solid fa-calendar"></i> 분석일자: <span id="reportDateBadge"></span></span>
-        <span class="flex items-center gap-1.5"><i class="fa-solid fa-box"></i> 계약금액: <span id="reportProjectScale">--</span></span>
-        <span class="flex items-center gap-1.5"><i class="fa-solid fa-coins"></i> 직접비(기준): <span id="reportBaseDirect">--</span></span>
-        <span class="flex items-center gap-1.5"><i class="fa-solid fa-receipt"></i> 일일 유지비: <span id="reportIndirectPerDay">--</span></span>
-        <span class="flex items-center gap-1.5"><i class="fa-solid fa-circle-info"></i> 간접비 산정: <span id="reportIndirectMode">--</span></span>
-      </div>
-
-      <!-- Detailed report -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 text-[15px] leading-relaxed text-slate-600 report-section">
-        <!-- Left -->
-        <div class="space-y-10">
-          <section>
-            <h3 class="text-lg font-black text-slate-900 tracking-tight uppercase">1. 전체 분석 흐름(목적 기준)</h3>
-            <div class="bg-slate-50 border border-slate-100 rounded-3xl p-6 space-y-4">
-              <ol class="space-y-2 text-sm">
-                <li class="flex gap-3"><span class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-black">1</span>
-                  <div><span class="font-black text-slate-800">계약현황 입력</span> (계약금액/계약공기/규모/비작업일/특수공정/공종별 작업일/현장배수)</div>
-                </li>
-                <li class="flex gap-3"><span class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-black">2</span>
-                  <div><span class="font-black text-slate-800">표준공기(참고) 산출</span> (시설물 공식 기반 검증치로 “규모 대비 합리성” 확인)</div>
-                </li>
-                <li class="flex gap-3"><span class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-black">3</span>
-                  <div><span class="font-black text-slate-800">Baseline 공정계획 수립</span> (WBS 생성 → 캘린더/현장배수 반영 → CPM으로 Baseline 공기 산출)</div>
-                </li>
-                <li class="flex gap-3"><span class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-black">4</span>
-                  <div><span class="font-black text-slate-800">U-Curve 데이터 생성</span> (연장구간+Baseline+단축구간을 포인트로 생성)</div>
-                </li>
-                <li class="flex gap-3"><span class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-black">5</span>
-                  <div><span class="font-black text-slate-800">최소비용 공기(MC) 도출</span> (총비용 최소 포인트 argmin 검증 포함)</div>
-                </li>
-                <li class="flex gap-3"><span class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-black">6</span>
-                  <div><span class="font-black text-slate-800">단축/연장 시 비용 변화 산정</span> (Baseline 대비 Δ비용을 기간별로 산정)</div>
-                </li>
-              </ol>
-            </div>
-          </section>
-
-          <section>
-            <h3 class="text-lg font-black text-slate-900 tracking-tight uppercase">2. 표준공기(참고) 산정 공식</h3>
-            <div class="bg-white border border-slate-200 rounded-3xl p-6 space-y-4">
-              <p class="text-sm text-slate-600">
-                표준공기는 “참고/검증치”로 사용하며, 본 도구의 공정계획(Baseline)은 WBS+CPM으로 별도로 수립한다.
-              </p>
-
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="bg-slate-50 border border-slate-100 rounded-2xl p-5">
-                  <div class="text-[11px] font-black uppercase text-slate-500 mb-2">기타 건축물(업무시설 등)</div>
-                  <div class="mono text-[12px] bg-white border border-slate-200 rounded-xl p-4 text-slate-700 leading-relaxed">
-                    Y = -21.674 + 7.953·G + 116.835·ln(C) + D + E<br/>
-                    C: 총공사비(억원), G: 지상층수(층), D: 공사준비(일), E: 준공준비(일)
-                  </div>
-                  <div class="mt-3 text-[12px]">
-                    산출값: <span class="font-black text-amber-700" id="reportStdOther">--</span>일
-                  </div>
-                </div>
-
-                <div class="bg-slate-50 border border-slate-100 rounded-2xl p-5">
-                  <div class="text-[11px] font-black uppercase text-slate-500 mb-2">건축(공통) 면적·지하 반영</div>
-                  <div class="mono text-[12px] bg-white border border-slate-200 rounded-xl p-4 text-slate-700 leading-relaxed">
-                    Y = -68.550 + 18.192·B + 12.079·G - 5.25·ln(A) + 167.632·ln(C) + D + E<br/>
-                    A: 연면적(100㎡), B: 지하층수, C: 총공사비(억원), G: 지상층수
-                  </div>
-                  <div class="mt-3 text-[12px]">
-                    산출값: <span class="font-black text-amber-700" id="reportStdCommon">--</span>일
-                  </div>
-                </div>
-              </div>
-
-              <div class="bg-slate-50 border border-slate-100 rounded-2xl p-5">
-                <div class="text-[11px] font-black uppercase text-slate-500 mb-2">본 프로젝트 단위 변환 입력값</div>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-3 text-[12px]">
-                  <div class="bg-white border border-slate-200 rounded-xl p-3">
-                    <div class="text-slate-400 font-bold">C (억원)</div>
-                    <div class="font-black text-slate-800" id="reportVarC">--</div>
-                  </div>
-                  <div class="bg-white border border-slate-200 rounded-xl p-3">
-                    <div class="text-slate-400 font-bold">A (100㎡)</div>
-                    <div class="font-black text-slate-800" id="reportVarA">--</div>
-                  </div>
-                  <div class="bg-white border border-slate-200 rounded-xl p-3">
-                    <div class="text-slate-400 font-bold">G (지상+옥탑)</div>
-                    <div class="font-black text-slate-800" id="reportVarG">--</div>
-                  </div>
-                  <div class="bg-white border border-slate-200 rounded-xl p-3">
-                    <div class="text-slate-400 font-bold">B (지하)</div>
-                    <div class="font-black text-slate-800" id="reportVarB">--</div>
-                  </div>
-                  <div class="bg-white border border-slate-200 rounded-xl p-3">
-                    <div class="text-slate-400 font-bold">D (준비)</div>
-                    <div class="font-black text-slate-800" id="reportVarD">--</div>
-                  </div>
-                  <div class="bg-white border border-slate-200 rounded-xl p-3">
-                    <div class="text-slate-400 font-bold">E (준공)</div>
-                    <div class="font-black text-slate-800" id="reportVarE">--</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section>
-            <h3 class="text-lg font-black text-slate-900 tracking-tight uppercase">3. WBS 기간 변환식 (작업일→달력일)</h3>
-            <div class="bg-slate-50 border border-slate-100 rounded-3xl p-6 space-y-4">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="bg-white border border-slate-200 rounded-2xl p-5">
-                  <div class="text-[11px] font-black uppercase text-slate-500 mb-2">비작업일 보정</div>
-                  <div class="mono text-[12px] bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-700 leading-relaxed">
-                    r = N_nonwork / 365<br/>
-                    CF = 1 / (1 - r)<br/>
-                    T_cal = ceil(T_work · CF)
-                  </div>
-                  <div class="mt-2 text-[12px]">현재 CF=<span class="font-black" id="reportCF">--</span></div>
-                </div>
-
-                <div class="bg-white border border-slate-200 rounded-2xl p-5">
-                  <div class="text-[11px] font-black uppercase text-slate-500 mb-2">현장난이도 배수</div>
-                  <div class="mono text-[12px] bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-700 leading-relaxed">
-                    SF = siteFactor<br/>
-                    T_work' = T_work · SF<br/>
-                    T_cal = ceil(T_work' · CF)
-                  </div>
-                  <div class="mt-2 text-[12px]">현재 SF=<span class="font-black" id="reportSF">--</span></div>
-                </div>
-              </div>
-
-              <div class="bg-white border border-slate-200 rounded-2xl p-5">
-                <div class="text-[11px] font-black uppercase text-slate-500 mb-2">Baseline 정의</div>
-                <div class="mono text-[12px] bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-700 leading-relaxed">
-                  Baseline = CPM(WBS, d_i = normalDur_i)<br/>
-                  D_base = max(EF_i)
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
-
-        <!-- Right -->
-        <div class="space-y-10">
-          <section>
-            <h3 class="text-lg font-black text-slate-900 tracking-tight uppercase">4. CPM 산출식</h3>
-            <div class="bg-white border border-slate-200 rounded-3xl p-6 space-y-4">
-              <div class="mono text-[12px] bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-700 leading-relaxed">
-                (FS) w(j→i) = d_j + lag<br/>
-                (SS) w(j→i) = lag<br/><br/>
-                ES_i = max( ES_j + w(j→i) )<br/>
-                EF_i = ES_i + d_i<br/>
-                Project Duration D = max(EF_i)<br/><br/>
-                Backward:<br/>
-                LS_i = min( LS_k - w(i→k) )<br/>
-                Float_i = LS_i - ES_i<br/>
-                CP ⇔ Float_i ≈ 0
-              </div>
-              <p class="text-[11px] text-slate-500">
-                단축/슬라이더 변경 시 d_i가 변하므로 CPM 재계산 → CP 전이/중첩을 실시간 반영.
-              </p>
-            </div>
-          </section>
-
-          <section>
-            <h3 class="text-lg font-black text-slate-900 tracking-tight uppercase">5. U-Curve 및 MC 도출식</h3>
-            <div class="bg-white border border-slate-200 rounded-3xl p-6 space-y-4">
-              <div class="mono text-[12px] bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-700 leading-relaxed">
-                Cost Slope: s_i = (C_i(crash)-C_i(normal)) / (d_i(normal)-d_i(crash))<br/>
-                Direct: C_dir(D) = C_base + Σ (d_i^N - d_i)·s_i<br/>
-                Indirect: C_ind(D) = D · c_ind/day<br/>
-                Total: C_total(D) = C_dir(D) + C_ind(D)<br/><br/>
-                MC = argmin_D C_total(D) over simulationPoints
-              </div>
-
-              <div class="bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm text-slate-600">
-                단축 구간은 “복수 CP”가 가능하므로, CP 서브그래프에서 1일 단축에 필요한 최소비용 공정 집합을
-                <span class="font-black text-slate-800">min-cut</span>으로 선택하고 반복하여 포인트를 생성한다.
-                또한 단축 후 CPM 재계산에서 즉시 기간이 줄지 않는 구간(SS/lag/전이)도 발생할 수 있으므로,
-                포인트 생성은 stagnation 허용(안전장치)으로 조기 종료를 방지한다.
-              </div>
-            </div>
-          </section>
-
-          <section>
-            <h3 class="text-lg font-black text-slate-900 tracking-tight uppercase">6. 근거/참고(링크)</h3>
-            <div class="bg-slate-50 border border-slate-100 rounded-3xl p-6">
-              <ul class="text-sm text-slate-600 space-y-2">
-                <li class="flex gap-2">
-                  <span class="text-slate-400 font-black">[K1]</span>
-                  <a class="text-blue-600 font-bold hover:underline" target="_blank"
-                     href="https://www.law.go.kr/LSW/admRulLsInfoP.do?admRulSeq=2100000251530">
-                    공공 건설공사의 공사기간 산정기준(국가법령정보센터)
-                  </a>
-                </li>
-                <li class="flex gap-2">
-                  <span class="text-slate-400 font-black">[T1]</span>
-                  <a class="text-blue-600 font-bold hover:underline" target="_blank"
-                     href="https://pubsonline.informs.org/doi/10.1287/mnsc.24.4.393">
-                    Time–cost tradeoff(Management Science, Phillips 1977)
-                  </a>
-                </li>
-                <li class="flex gap-2">
-                  <span class="text-slate-400 font-black">[L1]</span>
-                  <a class="text-blue-600 font-bold hover:underline" target="_blank"
-                     href="https://www.pmi.org/learning/library/critical-path-method-calculations-scheduling-8040">
-                    CPM Forward/Backward Pass(PMI)
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </section>
         </div>
       </div>
 
@@ -880,125 +750,6 @@
     };
     Chart.register(verticalLinePlugin);
 
-    // ===== Target mode helpers =====
-    function isContractMode() {
-      const input = document.getElementById('targetDaysInput');
-      const raw = input?.value;
-      return raw === '' || raw === undefined || raw === null;
-    }
-    function onTargetInputChanged() {
-      updateTargetUI();
-    }
-    function syncTargetInputToCurrentDuration() {
-      const input = document.getElementById('targetDaysInput');
-      if (!input || !state.normalCPM) return;
-      const diff = Math.round(state.currentCPM.projectDur - state.normalCPM.projectDur);
-      input.value = diff; // 숫자 입력 = "조정 모드"
-      updateTargetUI();
-    }
-    function getCurrentScenarioDisplay() {
-      // "공사기간조정이 없으면(= 입력 비움)" -> 현재 표시/비용은 계약공기 기준
-      if (isContractMode()) {
-        const pt = costAtDuration(state.targetNormalDuration);
-        if (pt) {
-          return { duration: state.targetNormalDuration, direct: pt.direct, indirect: pt.indirect, total: pt.total, mode: 'contract' };
-        }
-      }
-      const m = calculateMetrics(state.tasks);
-      return { ...m, mode: 'adjusted' };
-    }
-
-    // ===== Parsing helpers for grouping =====
-    function parseFloorLabel(name) {
-      const m = name.match(/^(.*?)(?:\sF(\d+))\s*(?:\(([^)]*)\))?\s*$/);
-      if (!m) return { base: name.trim(), floor: null, floorLabel: '' };
-      const base = (m[1] || '').trim();
-      const floor = parseInt(m[2], 10);
-      const floorLabel = `F${m[2]}`;
-      return { base, floor, floorLabel };
-    }
-    function extractPositionLabel(name) {
-      const f = parseFloorLabel(name);
-      if (f.floorLabel) return f.floorLabel;
-      const b = name.match(/\(B(\d+)\)|\bB(\d+)\b/i);
-      if (b) return `B${b[1] || b[2]}`;
-      if (/옥탑|PH|펜트/i.test(name)) return 'PH';
-      if (/가설|흙막이|토공|기초|파일|부대토목|조경|준공|시운전|성능검증|착공|준비/i.test(name)) return '전체';
-      return '';
-    }
-    function normalizeTradeKey(name) {
-      return name.replace(/\sF\d+\s*$/, '').replace(/\s*\(별도\)\s*$/, '').trim();
-    }
-    function assignTracksByOverlap(segments) {
-      const segs = [...segments].sort((a, b) => (a.cStart - b.cStart) || (a.cEnd - b.cEnd));
-      const trackEnds = [];
-      segs.forEach(s => {
-        let placed = false;
-        for (let i = 0; i < trackEnds.length; i++) {
-          if (s.cStart >= trackEnds[i]) {
-            s.track = i;
-            trackEnds[i] = s.cEnd;
-            placed = true;
-            break;
-          }
-        }
-        if (!placed) {
-          s.track = trackEnds.length;
-          trackEnds.push(s.cEnd);
-        }
-      });
-      return { segments: segs, trackCount: trackEnds.length };
-    }
-
-    // ===== Presets =====
-    const OFFICE_PRESETS = {
-      normal: { name:'보통(기준)', desc:'평균적인 현장 가정(공통배수 1.0).', annualNonWorkingDays:65, siteFactor:1.0, tempWorksWorkDays:12, earthworkFoundationWorkDays:60, ugFrameWorkDays:31, agFrameWorkDays:12, envelopeWorkDays:8, partitionWorkDays:6, mepRoughWorkDays:8, interiorWorkDays:10, mepFinishWorkDays:4, elecFireWorkDays:6, commissionWorkDays:45, mepStartLagDays:2, pileStartLagDays:5, siteStartLagDays:15 },
-      urban: { name:'도심 협소', desc:'협소부지/양중제약/동선복잡(공통배수 1.15).', annualNonWorkingDays:70, siteFactor:1.15, tempWorksWorkDays:18, earthworkFoundationWorkDays:80, ugFrameWorkDays:34, agFrameWorkDays:13, envelopeWorkDays:9, partitionWorkDays:7, mepRoughWorkDays:9, interiorWorkDays:11, mepFinishWorkDays:5, elecFireWorkDays:7, commissionWorkDays:50, mepStartLagDays:3, pileStartLagDays:7, siteStartLagDays:20 },
-      traffic: { name:'교통/민원(야간·통제)', desc:'작업시간 제약/야간/민원(공통배수 1.10 + 비작업 소폭↑).', annualNonWorkingDays:80, siteFactor:1.10, tempWorksWorkDays:16, earthworkFoundationWorkDays:75, ugFrameWorkDays:33, agFrameWorkDays:13, envelopeWorkDays:9, partitionWorkDays:7, mepRoughWorkDays:9, interiorWorkDays:11, mepFinishWorkDays:5, elecFireWorkDays:7, commissionWorkDays:50, mepStartLagDays:3, pileStartLagDays:7, siteStartLagDays:20 },
-      groundwater:{ name:'지하수/흙막이 고난도', desc:'지하수/차수/흙막이 복잡(공통배수 1.25, 토공·기초↑).', annualNonWorkingDays:70, siteFactor:1.25, tempWorksWorkDays:20, earthworkFoundationWorkDays:105, ugFrameWorkDays:36, agFrameWorkDays:13, envelopeWorkDays:9, partitionWorkDays:7, mepRoughWorkDays:9, interiorWorkDays:11, mepFinishWorkDays:5, elecFireWorkDays:7, commissionWorkDays:55, mepStartLagDays:3, pileStartLagDays:10, siteStartLagDays:20 },
-      rock:{ name:'암반/천공 고난도', desc:'암반/천공/소음제약(공통배수 1.20, 토공·파일↑).', annualNonWorkingDays:70, siteFactor:1.20, tempWorksWorkDays:18, earthworkFoundationWorkDays:95, ugFrameWorkDays:35, agFrameWorkDays:13, envelopeWorkDays:9, partitionWorkDays:7, mepRoughWorkDays:9, interiorWorkDays:11, mepFinishWorkDays:5, elecFireWorkDays:7, commissionWorkDays:55, mepStartLagDays:3, pileStartLagDays:8, siteStartLagDays:20, pileWorkDays:45 },
-      winter:{ name:'동절기/우기(비작업↑)', desc:'동절기·우기로 비작업↑(비작업 95일, 공통배수 1.10).', annualNonWorkingDays:95, siteFactor:1.10, tempWorksWorkDays:16, earthworkFoundationWorkDays:80, ugFrameWorkDays:34, agFrameWorkDays:13, envelopeWorkDays:9, partitionWorkDays:7, mepRoughWorkDays:9, interiorWorkDays:11, mepFinishWorkDays:5, elecFireWorkDays:7, commissionWorkDays:55, mepStartLagDays:3, pileStartLagDays:7, siteStartLagDays:20 }
-    };
-
-    function applyOfficePresetFromUI() {
-      const key = document.getElementById('officePreset')?.value || 'normal';
-      applyOfficePreset(key);
-    }
-    function applyOfficePreset(key) {
-      const p = OFFICE_PRESETS[key] || OFFICE_PRESETS.normal;
-      const setInput = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
-      const setSelect = (id, v) => { const el = document.getElementById(id); if (el) el.value = String(v); };
-
-      setVal('officePresetDesc', `${p.name}: ${p.desc}`);
-
-      if (typeof p.annualNonWorkingDays === 'number') setInput('annualNonWorkingDays', p.annualNonWorkingDays);
-      if (typeof p.pileWorkDays === 'number') setInput('pileWorkDays', p.pileWorkDays);
-
-      setSelect('officeSiteFactor', p.siteFactor ?? 1.0);
-      setInput('officeTempWorksWorkDays', p.tempWorksWorkDays ?? 12);
-      setInput('officeEarthworkFoundationWorkDays', p.earthworkFoundationWorkDays ?? 60);
-
-      setInput('officeUgFrameWorkDays', p.ugFrameWorkDays ?? 31);
-      setInput('officeAgFrameWorkDays', p.agFrameWorkDays ?? 12);
-
-      setInput('officeEnvelopeWorkDays', p.envelopeWorkDays ?? 8);
-      setInput('officePartitionWorkDays', p.partitionWorkDays ?? 6);
-
-      setInput('officeMepRoughWorkDays', p.mepRoughWorkDays ?? 8);
-      setInput('officeInteriorWorkDays', p.interiorWorkDays ?? 10);
-
-      setInput('officeMepFinishWorkDays', p.mepFinishWorkDays ?? 4);
-      setInput('officeElecFireWorkDays', p.elecFireWorkDays ?? 6);
-
-      setInput('officeCommissionWorkDays', p.commissionWorkDays ?? 45);
-
-      setInput('officeMepStartLagDays', p.mepStartLagDays ?? 2);
-      setInput('officePileStartLagDays', p.pileStartLagDays ?? 5);
-      setInput('officeSiteStartLagDays', p.siteStartLagDays ?? 15);
-
-      updateGlobalState();
-    }
-
     // ===== Global State =====
     let state = {
       contractAmount: 49050,
@@ -1053,7 +804,77 @@
       sliderCollapsed: {}
     };
 
+    // ===== Calibration state =====
+    let calib = {
+      recommendation: null,
+      undoSnapshot: null
+    };
+
     let costChart = null;
+
+    // ===== Presets =====
+    const OFFICE_PRESETS = {
+      normal: { name:'보통(기준)', desc:'평균적인 현장 가정(공통배수 1.0).', annualNonWorkingDays:65, siteFactor:1.0, tempWorksWorkDays:12, earthworkFoundationWorkDays:60, ugFrameWorkDays:31, agFrameWorkDays:12, envelopeWorkDays:8, partitionWorkDays:6, mepRoughWorkDays:8, interiorWorkDays:10, mepFinishWorkDays:4, elecFireWorkDays:6, commissionWorkDays:45, mepStartLagDays:2, pileStartLagDays:5, siteStartLagDays:15 },
+      urban: { name:'도심 협소', desc:'협소부지/양중제약/동선복잡(공통배수 1.15).', annualNonWorkingDays:70, siteFactor:1.15, tempWorksWorkDays:18, earthworkFoundationWorkDays:80, ugFrameWorkDays:34, agFrameWorkDays:13, envelopeWorkDays:9, partitionWorkDays:7, mepRoughWorkDays:9, interiorWorkDays:11, mepFinishWorkDays:5, elecFireWorkDays:7, commissionWorkDays:50, mepStartLagDays:3, pileStartLagDays:7, siteStartLagDays:20 },
+      traffic: { name:'교통/민원(야간·통제)', desc:'작업시간 제약/야간/민원(공통배수 1.10 + 비작업 소폭↑).', annualNonWorkingDays:80, siteFactor:1.10, tempWorksWorkDays:16, earthworkFoundationWorkDays:75, ugFrameWorkDays:33, agFrameWorkDays:13, envelopeWorkDays:9, partitionWorkDays:7, mepRoughWorkDays:9, interiorWorkDays:11, mepFinishWorkDays:5, elecFireWorkDays:7, commissionWorkDays:50, mepStartLagDays:3, pileStartLagDays:7, siteStartLagDays:20 },
+      groundwater:{ name:'지하수/흙막이 고난도', desc:'지하수/차수/흙막이 복잡(공통배수 1.25, 토공·기초↑).', annualNonWorkingDays:70, siteFactor:1.25, tempWorksWorkDays:20, earthworkFoundationWorkDays:105, ugFrameWorkDays:36, agFrameWorkDays:13, envelopeWorkDays:9, partitionWorkDays:7, mepRoughWorkDays:9, interiorWorkDays:11, mepFinishWorkDays:5, elecFireWorkDays:7, commissionWorkDays:55, mepStartLagDays:3, pileStartLagDays:10, siteStartLagDays:20 },
+      rock:{ name:'암반/천공 고난도', desc:'암반/천공/소음제약(공통배수 1.20, 토공·파일↑).', annualNonWorkingDays:70, siteFactor:1.20, tempWorksWorkDays:18, earthworkFoundationWorkDays:95, ugFrameWorkDays:35, agFrameWorkDays:13, envelopeWorkDays:9, partitionWorkDays:7, mepRoughWorkDays:9, interiorWorkDays:11, mepFinishWorkDays:5, elecFireWorkDays:7, commissionWorkDays:55, mepStartLagDays:3, pileStartLagDays:8, siteStartLagDays:20, pileWorkDays:45 },
+      winter:{ name:'동절기/우기(비작업↑)', desc:'동절기·우기로 비작업↑(비작업 95일, 공통배수 1.10).', annualNonWorkingDays:95, siteFactor:1.10, tempWorksWorkDays:16, earthworkFoundationWorkDays:80, ugFrameWorkDays:34, agFrameWorkDays:13, envelopeWorkDays:9, partitionWorkDays:7, mepRoughWorkDays:9, interiorWorkDays:11, mepFinishWorkDays:5, elecFireWorkDays:7, commissionWorkDays:55, mepStartLagDays:3, pileStartLagDays:7, siteStartLagDays:20 }
+    };
+
+    function applyOfficePresetFromUI() {
+      const key = document.getElementById('officePreset')?.value || 'normal';
+      applyOfficePreset(key);
+    }
+    function applyOfficePreset(key) {
+      const p = OFFICE_PRESETS[key] || OFFICE_PRESETS.normal;
+      const setInput = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+
+      setVal('officePresetDesc', `${p.name}: ${p.desc}`);
+
+      if (typeof p.annualNonWorkingDays === 'number') setInput('annualNonWorkingDays', p.annualNonWorkingDays);
+      if (typeof p.pileWorkDays === 'number') setInput('pileWorkDays', p.pileWorkDays);
+
+      setInput('officeSiteFactor', (p.siteFactor ?? 1.0).toFixed(2));
+      setInput('officeTempWorksWorkDays', p.tempWorksWorkDays ?? 12);
+      setInput('officeEarthworkFoundationWorkDays', p.earthworkFoundationWorkDays ?? 60);
+
+      setInput('officeUgFrameWorkDays', p.ugFrameWorkDays ?? 31);
+      setInput('officeAgFrameWorkDays', p.agFrameWorkDays ?? 12);
+
+      setInput('officeEnvelopeWorkDays', p.envelopeWorkDays ?? 8);
+      setInput('officePartitionWorkDays', p.partitionWorkDays ?? 6);
+
+      setInput('officeMepRoughWorkDays', p.mepRoughWorkDays ?? 8);
+      setInput('officeInteriorWorkDays', p.interiorWorkDays ?? 10);
+
+      setInput('officeMepFinishWorkDays', p.mepFinishWorkDays ?? 4);
+      setInput('officeElecFireWorkDays', p.elecFireWorkDays ?? 6);
+
+      setInput('officeCommissionWorkDays', p.commissionWorkDays ?? 45);
+
+      setInput('officeMepStartLagDays', p.mepStartLagDays ?? 2);
+      setInput('officePileStartLagDays', p.pileStartLagDays ?? 5);
+      setInput('officeSiteStartLagDays', p.siteStartLagDays ?? 15);
+
+      updateGlobalState();
+    }
+
+    // ===== Target mode helpers =====
+    function isContractMode() {
+      const input = document.getElementById('targetDaysInput');
+      const raw = input?.value;
+      return raw === '' || raw === undefined || raw === null;
+    }
+
+    function getCurrentScenarioDisplay() {
+      if (isContractMode()) {
+        const pt = costAtDuration(state.targetNormalDuration);
+        if (pt) return { duration: state.targetNormalDuration, direct: pt.direct, indirect: pt.indirect, total: pt.total, mode: 'contract' };
+      }
+      const m = calculateMetrics(state.tasks);
+      return { ...m, mode: 'adjusted' };
+    }
 
     // ===== Facility Checks =====
     function computeFacilityChecks() {
@@ -1694,7 +1515,6 @@
       const input = document.getElementById('targetDaysInput');
       if (!input) return;
 
-      // 비우면 계약공기 모드 유지
       if (input.value === '' || input.value === undefined) {
         updateTargetUI();
         return;
@@ -1720,7 +1540,6 @@
       const input = document.getElementById('targetDaysInput');
       if (!input) return;
 
-      // 계약모드(비어있음)에서 +/- 누르면 baseline 대비 0부터 시작
       let val = parseInt(input.value);
       if (isNaN(val)) val = 0;
 
@@ -1749,7 +1568,6 @@
       const baselineDur = state.normalCPM.projectDur;
       const contractDur = state.targetNormalDuration;
 
-      // 계약모드
       if (isContractMode()) {
         setVal(
           'targetDaysDiff',
@@ -1773,7 +1591,6 @@
         return;
       }
 
-      // 조정모드
       const input = document.getElementById('targetDaysInput');
       const rawValue = input?.value;
       let diffDaysInput = parseInt(rawValue);
@@ -1829,37 +1646,46 @@
       updateUI();
     }
 
-    // ===== Slider events =====
-    function handleSliderChange(id, val) {
-      const task = state.tasks.find(t => t.id === id);
-      if (task) task.currentDur = parseInt(val);
-
-      calculateCurrentCPM();
-      // 사용자가 슬라이더로 직접 바꾸면 "조정모드"로 전환되도록 입력값 동기화
-      syncTargetInputToCurrentDuration();
-
-      renderSliders();
-      updateUI();
+    // ===== Grouping helpers for sliders/gantt =====
+    function parseFloorLabel(name) {
+      const m = name.match(/^(.*?)(?:\sF(\d+))\s*(?:\(([^)]*)\))?\s*$/);
+      if (!m) return { base: name.trim(), floor: null, floorLabel: '' };
+      const base = (m[1] || '').trim();
+      const floor = parseInt(m[2], 10);
+      const floorLabel = `F${m[2]}`;
+      return { base, floor, floorLabel };
     }
-
-    function handleGroupSliderChange(groupKey, rawVal) {
-      const v = parseInt(rawVal);
-      if (!isFinite(v)) return;
-
-      const groups = buildSliderGroups();
-      const g = groups.find(x => x.key === groupKey);
-      if (!g) return;
-
-      g.items.forEach(it => {
-        const t = it.task;
-        t.currentDur = clamp(v, t.crashDur, t.normalDur);
+    function extractPositionLabel(name) {
+      const f = parseFloorLabel(name);
+      if (f.floorLabel) return f.floorLabel;
+      const b = name.match(/\(B(\d+)\)|\bB(\d+)\b/i);
+      if (b) return `B${b[1] || b[2]}`;
+      if (/옥탑|PH|펜트/i.test(name)) return 'PH';
+      if (/가설|흙막이|토공|기초|파일|부대토목|조경|준공|시운전|성능검증|착공|준비/i.test(name)) return '전체';
+      return '';
+    }
+    function normalizeTradeKey(name) {
+      return name.replace(/\sF\d+\s*$/, '').replace(/\s*\(별도\)\s*$/, '').trim();
+    }
+    function assignTracksByOverlap(segments) {
+      const segs = [...segments].sort((a, b) => (a.cStart - b.cStart) || (a.cEnd - b.cEnd));
+      const trackEnds = [];
+      segs.forEach(s => {
+        let placed = false;
+        for (let i = 0; i < trackEnds.length; i++) {
+          if (s.cStart >= trackEnds[i]) {
+            s.track = i;
+            trackEnds[i] = s.cEnd;
+            placed = true;
+            break;
+          }
+        }
+        if (!placed) {
+          s.track = trackEnds.length;
+          trackEnds.push(s.cEnd);
+        }
       });
-
-      calculateCurrentCPM();
-      syncTargetInputToCurrentDuration();
-
-      renderSliders();
-      updateUI();
+      return { segments: segs, trackCount: trackEnds.length };
     }
 
     // ===== Sliders (Grouped) =====
@@ -1916,6 +1742,33 @@
     function toggleSliderGroup(key) {
       state.sliderCollapsed[key] = !state.sliderCollapsed[key];
       renderSliders();
+    }
+
+    function handleGroupSliderChange(groupKey, rawVal) {
+      const v = parseInt(rawVal);
+      if (!isFinite(v)) return;
+
+      const groups = buildSliderGroups();
+      const g = groups.find(x => x.key === groupKey);
+      if (!g) return;
+
+      g.items.forEach(it => {
+        const t = it.task;
+        t.currentDur = clamp(v, t.crashDur, t.normalDur);
+      });
+
+      calculateCurrentCPM();
+      renderSliders();
+      updateUI();
+    }
+
+    function handleSliderChange(id, val) {
+      const task = state.tasks.find(t => t.id === id);
+      if (task) task.currentDur = parseInt(val);
+
+      calculateCurrentCPM();
+      renderSliders();
+      updateUI();
     }
 
     function renderSliders() {
@@ -2041,7 +1894,7 @@
       });
     }
 
-    // ===== Gantt =====
+    // ===== Gantt (간단 버전: 상세는 생략) =====
     function toggleGanttMode() {
       state.ganttMode = (state.ganttMode === 'grouped') ? 'detail' : 'grouped';
       const btn = document.getElementById('ganttModeBtn');
@@ -2068,16 +1921,10 @@
         const seg = {
           id: t.id,
           label: extractPositionLabel(t.name),
-          baseName: base,
-
           nStart: n.es,
           nDur: t.normalDur,
-          nEnd: n.es + t.normalDur,
-
           cStart: c.es,
           cDur: t.currentDur,
-          cEnd: c.es + t.currentDur,
-
           isFixed: t.normalDur === t.crashDur,
           isNoCost: (t.normalCost === 0 && t.crashCost === 0),
           isCP: !!c.isCP
@@ -2091,7 +1938,7 @@
       for (const [key, segs] of lanesMap.entries()) {
         const minStart = Math.min(...segs.map(s => s.nStart));
         const { segments, trackCount } = assignTracksByOverlap(segs);
-        lanes.push({ key, label: key, minStart, segments, trackCount: Math.max(1, trackCount) });
+        lanes.push({ label: key, minStart, segments, trackCount: Math.max(1, trackCount) });
       }
       lanes.sort((a, b) => a.minStart - b.minStart);
       return lanes;
@@ -2112,62 +1959,6 @@
         bg += `<div class="absolute top-0 bottom-0 border-l border-dashed border-slate-200" style="left: ${ratio}%;"></div>`;
       });
       bg += `</div>`;
-
-      if (state.ganttMode === 'detail') {
-        let html = bg;
-        html += `<div class="relative z-10 space-y-4">`;
-
-        const tasksSorted = [...state.tasks].sort((a, b) => {
-          const nA = state.normalCPM.nodes.find(x => x.id === a.id);
-          const nB = state.normalCPM.nodes.find(x => x.id === b.id);
-          return (nA?.es ?? 0) - (nB?.es ?? 0) || a.id - b.id;
-        });
-
-        tasksSorted.forEach(t => {
-          const normalNode = state.normalCPM.nodes.find(n => n.id === t.id);
-          const currentNode = state.currentCPM.nodes.find(n => n.id === t.id);
-
-          const isFixed = t.normalDur === t.crashDur;
-          const isNoCost = (t.normalCost === 0 && t.crashCost === 0);
-
-          const nLeft = ((normalNode?.es ?? 0) / maxDur) * 100;
-          const nWidth = (t.normalDur / maxDur) * 100;
-          const cLeft = ((currentNode?.es ?? 0) / maxDur) * 100;
-          const cWidth = (t.currentDur / maxDur) * 100;
-
-          html += `
-            <div class="flex items-center gap-4 h-10 group">
-              <div class="w-24 shrink-0 text-[11px] font-black text-slate-500 text-right leading-tight uppercase tracking-tighter">${t.name}</div>
-              <div class="flex-1 relative h-full bg-slate-50/70 rounded-xl border border-slate-100 overflow-hidden">
-                <div class="absolute top-1.5 h-1.5 bg-slate-200 rounded-full transition-all duration-500" style="left: ${nLeft}%; width: ${nWidth}%"></div>
-                <div class="absolute bottom-1.5 h-3.5 rounded shadow-sm transition-all duration-500 flex items-center justify-end px-1 ${
-                  isFixed ? 'bg-slate-800' : isNoCost ? 'bg-slate-400' : (currentNode?.isCP ? 'bg-rose-400' : 'bg-blue-400')
-                }" style="left: ${cLeft}%; width: ${cWidth}%">
-                  ${cWidth > 5 ? `<span class="text-[10px] font-black text-white">${t.currentDur}</span>` : ''}
-                </div>
-              </div>
-            </div>
-          `;
-        });
-
-        html += `</div>`;
-        html += `
-          <div class="flex items-start gap-4 mt-4 pt-3 border-t border-slate-200 relative z-10 bg-white">
-            <div class="w-24 shrink-0 text-[10px] font-bold text-slate-400 text-right mt-0.5">누적 공사기간</div>
-            <div class="flex-1 relative h-6">
-              ${ticks.map(day => `
-                <div class="absolute top-0 flex flex-col items-center -translate-x-1/2" style="left: ${(day / maxDur) * 100}%">
-                  <div class="w-px h-1.5 bg-slate-300 mb-1"></div>
-                  <span class="text-[10px] font-bold text-slate-500">${day}일</span>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        `;
-
-        container.innerHTML = html;
-        return;
-      }
 
       const lanes = buildGanttLanes();
       const trackGap = 20, topPad = 10, baseLineH = 3, curBarH = 9, baseYOffset = 3, curYOffset = 10;
@@ -2240,7 +2031,6 @@
       container.innerHTML = html;
     }
 
-    // ===== Gantt Crosshair =====
     function handleGanttMouseMove(e) {
       const wrapper = document.getElementById('ganttWrapper');
       const crosshair = document.getElementById('ganttCrosshair');
@@ -2289,7 +2079,6 @@
       const scenarios = [];
       if (stdPt) scenarios.push({ id: 'std', name: '표준공기(참고)', point: stdPt, badge: 'bg-amber-500', rowClass: 'bg-amber-50/40' });
 
-      // 계약모드(입력 비움)면 "계약공기(현재)"만 하이라이트로 보여주고, 계약공기 행은 중복 방지
       if (isContractMode()) {
         if (conPt) scenarios.push({ id: 'currcon', name: '계약공기(현재)', point: { ...conPt, duration: state.targetNormalDuration }, badge: 'bg-blue-600', rowClass: 'bg-blue-50/50 border-l-4 border-blue-400' });
       } else {
@@ -2299,14 +2088,12 @@
       scenarios.push({ id: 'base', name: 'Baseline(적정 공정계획)', point: baselinePt, badge: 'bg-slate-400', rowClass: 'bg-white' });
       if (optPt) scenarios.push({ id: 'opt', name: '최소비용(MC)', point: optPt, badge: 'bg-emerald-500', rowClass: 'bg-emerald-50/40' });
 
-      // 조정모드에서만 공사기간조정 행 표시
       if (!isContractMode()) {
         const adjDiff = Math.round(currentDisplay.duration - baselinePt.duration);
         let adjName = '공사기간조정';
         if (adjDiff < 0) adjName = `공사기간조정(단축 ${Math.abs(adjDiff)}일)`;
         else if (adjDiff > 0) adjName = `공사기간조정(연장 +${adjDiff}일)`;
         else adjName = `공사기간조정(변경 없음)`;
-
         scenarios.push({ id: 'adj', name: adjName, point: currentDisplay, badge: 'bg-blue-600', rowClass: 'bg-blue-50/50 border-l-4 border-blue-400' });
       }
 
@@ -2449,35 +2236,291 @@
       setVal('reportCurrentDeltaCost', deltaStr);
 
       setVal('reportCurrentTitle', isContractMode() ? '계약공기(현재)' : '공사기간조정');
-
       setVal('legendCurrentLabel', isContractMode() ? '현재=계약공기' : '현재=조정결과');
-
-      setVal('reportStdOther', state.facilityCheck?.otherBuilding ?? '--');
-      setVal('reportStdCommon', state.facilityCheck?.commonForm ?? '--');
-
-      const inp = state.facilityCheck?.inputs;
-      if (inp) {
-        setVal('reportVarC', inp.C.toFixed(2));
-        setVal('reportVarA', inp.A.toFixed(2));
-        setVal('reportVarG', inp.G);
-        setVal('reportVarB', inp.B);
-        setVal('reportVarD', inp.D);
-        setVal('reportVarE', inp.E);
-      }
-
-      const nwRatio = (state.annualNonWorkingDays || 0) / 365;
-      const CF = 1 / Math.max(0.10, (1 - nwRatio));
-      setVal('reportCF', CF.toFixed(3));
-      setVal('reportSF', (state.officeWbs?.siteFactor ?? 1.0).toFixed(2));
-
-      const metrics = calculateMetrics(state.tasks); // 간접/일 표시용
-      setVal('reportProjectScale', formatCurrency(state.contractAmount) + '백만');
-      setVal('reportBaseDirect', formatCurrency(state.baseDirectCost) + '백만');
-      setVal('reportIndirectPerDay', formatCurrency(metrics.indirectPerDay) + '백만');
-      setVal('reportIndirectMode', metrics.indirectMode);
 
       const v = verifyMCPoint();
       setVal('reportOptimalCheck', v.ok ? `검증: ${v.msg}` : `⚠ ${v.msg}`);
+    }
+
+    // ===== Calibration: simulation without touching UI =====
+    function deepClone(obj) { return JSON.parse(JSON.stringify(obj)); }
+
+    function simulateBaselineDurationWithOfficeWbs(officeWbsCandidate) {
+      const saved = deepClone(state.officeWbs);
+      state.officeWbs = deepClone(officeWbsCandidate);
+      const tasks = (state.projectType === 'civil' || state.projectType === 'plant')
+        ? [] : buildOfficeWBS();
+      const dur = (tasks.length > 0) ? calculateCPM(tasks).projectDur : (state.normalCPM?.projectDur ?? 0);
+      state.officeWbs = saved;
+      return dur;
+    }
+
+    const CALIB_FINE_PARAMS = [
+      { key: 'earthworkFoundationWorkDays', label: '흙막이·토공·기초(작업일,전체)', min: 20, max: 220 },
+      { key: 'ugFrameWorkDays', label: '지하 골조(작업일/층)', min: 10, max: 90 },
+      { key: 'agFrameWorkDays', label: '지상 골조(작업일/층)', min: 6, max: 45 },
+      { key: 'interiorWorkDays', label: '내부마감(작업일/층)', min: 4, max: 35 },
+      { key: 'mepRoughWorkDays', label: 'MEP 러프인(작업일/층)', min: 4, max: 35 },
+      { key: 'commissionWorkDays', label: 'TAB·시운전(작업일,전체)', min: 10, max: 140 }
+    ];
+
+    function calcRecommendation(type) {
+      // civil/plant 제외
+      if (state.projectType === 'civil' || state.projectType === 'plant') return;
+
+      const useSite = !!document.getElementById('calibUseSiteFactor')?.checked;
+      const useFine = !!document.getElementById('calibUseFineTune')?.checked;
+
+      const target = (type === 'contract') ? state.targetNormalDuration : state.standardDuration;
+      const current = deepClone(state.officeWbs);
+
+      let candidate = deepClone(current);
+      let bestDur = simulateBaselineDurationWithOfficeWbs(candidate);
+      let bestDiff = Math.abs(bestDur - target);
+
+      // 1) siteFactor grid search
+      if (useSite) {
+        const minF = 0.70, maxF = 1.60, step = 0.01;
+        let bestF = candidate.siteFactor ?? 1.0;
+
+        for (let f = minF; f <= maxF + 1e-9; f += step) {
+          const w = deepClone(candidate);
+          w.siteFactor = Math.round(f * 100) / 100;
+          const d = simulateBaselineDurationWithOfficeWbs(w);
+          const diff = Math.abs(d - target);
+
+          // tie-break: smaller change from current
+          const tie = (diff === bestDiff) && (Math.abs(w.siteFactor - current.siteFactor) < Math.abs(bestF - current.siteFactor));
+
+          if (diff < bestDiff || tie) {
+            bestDiff = diff;
+            bestDur = d;
+            bestF = w.siteFactor;
+          }
+        }
+        candidate.siteFactor = bestF;
+        bestDur = simulateBaselineDurationWithOfficeWbs(candidate);
+        bestDiff = Math.abs(bestDur - target);
+      }
+
+      // 2) fine tune greedy
+      if (useFine && bestDiff > 1) {
+        let guard = 0;
+        while (guard++ < 80) {
+          const curDur = simulateBaselineDurationWithOfficeWbs(candidate);
+          const err = target - curDur;
+          if (Math.abs(err) <= 1) { bestDur = curDur; bestDiff = Math.abs(err); break; }
+
+          const dir = err > 0 ? +1 : -1;
+          let bestMove = null;
+
+          for (const p of CALIB_FINE_PARAMS) {
+            const w = deepClone(candidate);
+            const v0 = w[p.key] ?? current[p.key] ?? 0;
+            const v1 = clamp(v0 + dir * 1, p.min, p.max);
+            if (v1 === v0) continue;
+            w[p.key] = v1;
+
+            const d1 = simulateBaselineDurationWithOfficeWbs(w);
+            const improve = Math.abs(err) - Math.abs(target - d1);
+
+            if (improve > 0) {
+              const penalty = Math.abs(v1 - (current[p.key] ?? v0));
+              if (!bestMove || improve > bestMove.improve || (improve === bestMove.improve && penalty < bestMove.penalty)) {
+                bestMove = { key: p.key, label: p.label, next: v1, dur: d1, improve, penalty };
+              }
+            }
+          }
+
+          if (!bestMove) { bestDur = curDur; bestDiff = Math.abs(err); break; }
+          candidate[bestMove.key] = bestMove.next;
+          bestDur = bestMove.dur;
+          bestDiff = Math.abs(target - bestDur);
+          if (bestDiff <= 1) break;
+        }
+      }
+
+      calib.recommendation = {
+        type,
+        target,
+        currentWbs: current,
+        recommendedWbs: candidate,
+        predictedBaseline: bestDur,
+        diff: bestDur - target
+      };
+
+      renderCalibDiffTable();
+      updateCalibPanelStatus();
+
+      const applyBtn = document.getElementById('calibApplyBtn');
+      if (applyBtn) applyBtn.disabled = false;
+
+      const undoBtn = document.getElementById('calibUndoBtn');
+      if (undoBtn) undoBtn.disabled = !calib.undoSnapshot;
+    }
+
+    function renderCalibDiffTable() {
+      const tbody = document.getElementById('calibDiffTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      const r = calib.recommendation;
+      if (!r) {
+        tbody.innerHTML = `<tr><td class="py-4 px-4 text-slate-500 font-bold" colspan="4">추천값 계산을 실행하세요.</td></tr>`;
+        return;
+      }
+
+      const rows = [];
+
+      // Always show siteFactor
+      rows.push({ key: 'siteFactor', label: '현장난이도 배수(siteFactor)' });
+
+      // show fine params + some core
+      const showKeys = new Set([
+        'tempWorksWorkDays',
+        'earthworkFoundationWorkDays',
+        'ugFrameWorkDays',
+        'agFrameWorkDays',
+        'envelopeWorkDays',
+        'partitionWorkDays',
+        'mepRoughWorkDays',
+        'interiorWorkDays',
+        'mepFinishWorkDays',
+        'elecFireWorkDays',
+        'commissionWorkDays',
+        'mepStartLagDays',
+        'pileStartLagDays',
+        'siteStartLagDays'
+      ]);
+
+      const labels = {
+        tempWorksWorkDays: '가설공사(작업일,전체)',
+        earthworkFoundationWorkDays: '흙막이·토공·기초(작업일,전체)',
+        ugFrameWorkDays: '지하 골조(작업일/층)',
+        agFrameWorkDays: '지상 골조(작업일/층)',
+        envelopeWorkDays: '외장/커튼월(작업일/층)',
+        partitionWorkDays: '경량벽체/조적(작업일/층)',
+        mepRoughWorkDays: 'MEP 러프인(작업일/층)',
+        interiorWorkDays: '내부마감(작업일/층)',
+        mepFinishWorkDays: 'MEP 마감/기기(작업일/층)',
+        elecFireWorkDays: '전기·통신·소방(작업일/층)',
+        commissionWorkDays: 'TAB·시운전(작업일,전체)',
+        mepStartLagDays: 'MEP 착수 lag(일)',
+        pileStartLagDays: '파일 착수 lag(일)',
+        siteStartLagDays: '부대토목 착수 lag(일)'
+      };
+
+      for (const k of Object.keys(r.recommendedWbs)) {
+        if (!showKeys.has(k)) continue;
+        if (k === 'siteFactor') continue;
+        rows.push({ key: k, label: labels[k] || k });
+      }
+
+      rows.forEach(row => {
+        const cur = r.currentWbs[row.key];
+        const rec = r.recommendedWbs[row.key];
+        const delta = (typeof cur === 'number' && typeof rec === 'number') ? (rec - cur) : 0;
+
+        const changed = (typeof cur === 'number' && typeof rec === 'number') ? (Math.abs(delta) > 1e-9) : (cur !== rec);
+        const tr = document.createElement('tr');
+        tr.className = `border-b border-slate-100 last:border-0 ${changed ? 'bg-emerald-50/30' : ''}`;
+
+        const fmt = (v) => (typeof v === 'number' ? (Number.isInteger(v) ? String(v) : v.toFixed(2)) : String(v ?? ''));
+
+        tr.innerHTML = `
+          <td class="py-3 px-4 text-[12px] font-bold text-slate-700">${row.label}</td>
+          <td class="py-3 px-3 text-right text-[12px] font-bold text-slate-600">${fmt(cur)}</td>
+          <td class="py-3 px-3 text-right text-[12px] font-black ${changed ? 'text-emerald-700' : 'text-slate-700'}">${fmt(rec)}</td>
+          <td class="py-3 px-3 text-right text-[12px] font-black ${delta > 0 ? 'text-rose-600' : delta < 0 ? 'text-blue-600' : 'text-slate-400'}">
+            ${typeof cur === 'number' && typeof rec === 'number' ? (delta > 0 ? '+' : '') + fmt(delta) : (changed ? '변경' : '-')}
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function updateCalibPanelStatus() {
+      const panel = document.getElementById('autoCalibPanel');
+      if (!panel) return;
+
+      const enabled = !(state.projectType === 'civil' || state.projectType === 'plant');
+      panel.style.display = enabled ? 'block' : 'none';
+      if (!enabled) return;
+
+      setVal('calibCurrentBaseline', `${state.normalCPM?.projectDur ?? '--'}일`);
+      setVal('calibTargetContract', `${state.targetNormalDuration}일`);
+      setVal('calibTargetStandard', `${state.standardDuration}일`);
+
+      if (calib.recommendation) {
+        setVal('calibPredBaseline', `${Math.round(calib.recommendation.predictedBaseline)}일`);
+        const d = Math.round(calib.recommendation.predictedBaseline - calib.recommendation.target);
+        const txt = (d === 0) ? '0일' : (d > 0 ? `+${d}일` : `${d}일`);
+        const color = (d === 0) ? 'text-slate-600' : (d > 0 ? 'text-rose-600' : 'text-blue-600');
+        setVal('calibPredDiff', `<span class="${color} font-black">${txt}</span>`, true);
+      } else {
+        setVal('calibPredBaseline', '--');
+        setVal('calibPredDiff', '--');
+      }
+
+      const undoBtn = document.getElementById('calibUndoBtn');
+      if (undoBtn) undoBtn.disabled = !calib.undoSnapshot;
+    }
+
+    function setOfficeWbsInputsToDOM(officeWbsObj) {
+      const setInput = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+
+      setInput('officeTempWorksWorkDays', officeWbsObj.tempWorksWorkDays);
+      setInput('officeEarthworkFoundationWorkDays', officeWbsObj.earthworkFoundationWorkDays);
+      setInput('officeUgFrameWorkDays', officeWbsObj.ugFrameWorkDays);
+      setInput('officeAgFrameWorkDays', officeWbsObj.agFrameWorkDays);
+      setInput('officeEnvelopeWorkDays', officeWbsObj.envelopeWorkDays);
+      setInput('officePartitionWorkDays', officeWbsObj.partitionWorkDays);
+      setInput('officeMepRoughWorkDays', officeWbsObj.mepRoughWorkDays);
+      setInput('officeInteriorWorkDays', officeWbsObj.interiorWorkDays);
+      setInput('officeMepFinishWorkDays', officeWbsObj.mepFinishWorkDays);
+      setInput('officeElecFireWorkDays', officeWbsObj.elecFireWorkDays);
+      setInput('officeCommissionWorkDays', officeWbsObj.commissionWorkDays);
+
+      setInput('officeMepStartLagDays', officeWbsObj.mepStartLagDays);
+      setInput('officePileStartLagDays', officeWbsObj.pileStartLagDays);
+      setInput('officeSiteStartLagDays', officeWbsObj.siteStartLagDays);
+
+      setInput('officeSiteFactor', (officeWbsObj.siteFactor ?? 1.0).toFixed(2));
+    }
+
+    function applyRecommendation() {
+      const r = calib.recommendation;
+      if (!r) return;
+
+      // store undo snapshot (DOM 기준)
+      if (!calib.undoSnapshot) {
+        calib.undoSnapshot = deepClone(state.officeWbs);
+      }
+
+      // apply to DOM
+      setOfficeWbsInputsToDOM(r.recommendedWbs);
+
+      // recompute
+      updateGlobalState();
+
+      // keep recommendation visible but allow undo
+      const undoBtn = document.getElementById('calibUndoBtn');
+      if (undoBtn) undoBtn.disabled = false;
+    }
+
+    function undoRecommendation() {
+      if (!calib.undoSnapshot) return;
+
+      setOfficeWbsInputsToDOM(calib.undoSnapshot);
+      calib.undoSnapshot = null;
+      calib.recommendation = null;
+
+      const applyBtn = document.getElementById('calibApplyBtn');
+      if (applyBtn) applyBtn.disabled = true;
+
+      updateGlobalState();
+      renderCalibDiffTable();
+      updateCalibPanelStatus();
     }
 
     // ===== UI update =====
@@ -2494,6 +2537,7 @@
       renderGantt();
       updateChart();
       updateReportBlocks();
+      updateCalibPanelStatus();
     }
 
     // ===== Distribute/Build tasks =====
@@ -2593,18 +2637,21 @@
         siteFactor: readNum('officeSiteFactor', 1.0)
       };
 
+      // 추천 적용 후 updateGlobalState가 호출되므로, 추천 UI는 유지하되 "현재 상태"를 갱신
       distributeTasks();
+      renderCalibDiffTable();
+      updateCalibPanelStatus();
     }
 
     // ===== Onload =====
     window.onload = () => {
       const today = new Date().toLocaleDateString('ko-KR');
       setVal('reportDate', today);
-      setVal('reportDateBadge', today);
 
       const k = document.getElementById('officePreset')?.value || 'normal';
       setVal('officePresetDesc', `${OFFICE_PRESETS[k].name}: ${OFFICE_PRESETS[k].desc}`);
 
+      renderCalibDiffTable();
       updateGlobalState();
     };
   </script>
