@@ -25,7 +25,6 @@
       width: 18px; height: 18px; background: #2563eb; cursor: pointer;
       border-radius: 50%; border: 2px solid white;
     }
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
   </style>
 </head>
 
@@ -170,6 +169,57 @@
                   <input type="number" id="endAdminDays" value="30" onchange="updateGlobalState()"
                          class="w-full bg-white border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold focus:ring-2 focus:ring-blue-500 outline-none text-center" />
                   <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-bold">일</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- ✅ Realism controls -->
+            <div class="mt-4 bg-white border border-slate-200 rounded-xl p-4">
+              <div class="flex items-center justify-between gap-3">
+                <div class="text-[11px] font-black text-slate-700 flex items-center gap-2">
+                  <i class="fa-solid fa-shield-heart text-violet-600"></i> 현실성 보정(최소공기/자원제약)
+                </div>
+                <div class="text-[11px] font-black text-violet-700 bg-violet-50 border border-violet-100 px-2 py-1 rounded">
+                  최소공기: <span id="realisticMinDurationMini">--</span>일
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                <div>
+                  <label class="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                    현실 최소공기 비율(%)
+                    <span class="text-slate-400 font-bold normal-case ml-1">(표준/계약 중 큰 값 대비)</span>
+                  </label>
+                  <div class="flex items-center gap-3 mt-2">
+                    <input type="range" id="realisticMinPercent" min="90" max="100" step="1" value="90"
+                           oninput="syncRealisticMinUI(this.value)" onchange="updateGlobalState()"
+                           class="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer custom-slider" />
+                    <input type="number" id="realisticMinPercentNumber" min="90" max="100" step="1" value="90"
+                           oninput="syncRealisticMinUI(this.value)" onchange="updateGlobalState()"
+                           class="w-20 bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-black text-center" />
+                    <span class="text-[11px] font-black text-slate-400">%</span>
+                  </div>
+                  <p class="text-[10px] text-slate-400 font-bold mt-2">
+                    예: 90%면 “최대 10% 단축까지만 현실적으로 허용”
+                  </p>
+                </div>
+
+                <div>
+                  <label class="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                    Crew 제약 강도(층간 착수 간격)
+                    <span class="text-slate-400 font-bold normal-case ml-1">(1.00=기본)</span>
+                  </label>
+                  <div class="flex items-center gap-3 mt-2">
+                    <input type="range" id="crewIntensity" min="0.80" max="1.60" step="0.05" value="1.00"
+                           oninput="syncCrewIntensityUI(this.value)" onchange="updateGlobalState()"
+                           class="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer custom-slider" />
+                    <input type="number" id="crewIntensityNumber" min="0.80" max="1.60" step="0.05" value="1.00"
+                           oninput="syncCrewIntensityUI(this.value)" onchange="updateGlobalState()"
+                           class="w-20 bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-black text-center" />
+                  </div>
+                  <p class="text-[10px] text-slate-400 font-bold mt-2">
+                    값↑ = 동시작업 제한↑(병렬↓) → 공기 현실감↑
+                  </p>
                 </div>
               </div>
             </div>
@@ -327,94 +377,6 @@
           <p class="mt-3 text-[11px] font-bold text-emerald-700/80">
             ※ 작업일 입력값은 연간 비작업일 보정(캘린더) + 현장 난이도(공통 배수)가 적용되어 “달력일”로 변환됩니다.
           </p>
-
-          <!-- ✅ Auto Calibration Panel -->
-          <div id="autoCalibPanel" class="mt-6 bg-white border border-emerald-200 rounded-2xl p-5">
-            <div class="flex items-start justify-between gap-4">
-              <div>
-                <div class="text-[11px] font-black text-emerald-700 uppercase tracking-wider flex items-center gap-2">
-                  <i class="fa-solid fa-wand-magic-sparkles"></i> 자동 맞춤(추천) - 계약공기/표준공기 기준 가정값 캘리브레이션
-                </div>
-                <p class="text-[11px] text-slate-500 font-bold mt-2">
-                  목표(계약공기/표준공기)에 맞도록 <span class="text-slate-800">공정표(WBS+CPM)</span>가 근접하도록
-                  <span class="text-slate-800">현장배수/공종 작업일</span>을 제안합니다.
-                </p>
-              </div>
-              <div class="text-right">
-                <div class="text-[11px] text-slate-400 font-black">현재 공정표(계약맞춤)</div>
-                <div class="text-xl font-black text-slate-900"><span id="calibCurrentBaseline">--</span></div>
-              </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
-              <div class="bg-slate-50 border border-slate-200 rounded-xl p-3">
-                <div class="text-[10px] font-black text-slate-500 uppercase">계약공기</div>
-                <div class="text-lg font-black text-slate-800"><span id="calibTargetContract">--</span></div>
-              </div>
-              <div class="bg-amber-50/40 border border-amber-100 rounded-xl p-3">
-                <div class="text-[10px] font-black text-amber-700 uppercase">표준공기(참고)</div>
-                <div class="text-lg font-black text-amber-700"><span id="calibTargetStandard">--</span></div>
-              </div>
-              <div class="bg-emerald-50/40 border border-emerald-100 rounded-xl p-3">
-                <div class="text-[10px] font-black text-emerald-700 uppercase">추천 적용 시 공정표</div>
-                <div class="text-lg font-black text-emerald-700"><span id="calibPredBaseline">--</span></div>
-                <div class="text-[11px] font-bold text-slate-500">오차: <span id="calibPredDiff">--</span></div>
-              </div>
-            </div>
-
-            <div class="flex flex-col md:flex-row gap-3 mt-4">
-              <div class="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 flex-1">
-                <label class="flex items-center gap-2 text-[11px] font-black text-slate-700">
-                  <input type="checkbox" id="calibUseSiteFactor" checked class="accent-emerald-600" />
-                  현장난이도(siteFactor) 자동 탐색
-                </label>
-                <label class="flex items-center gap-2 text-[11px] font-black text-slate-700">
-                  <input type="checkbox" id="calibUseFineTune" class="accent-emerald-600" />
-                  고급: 공종 작업일 미세조정(권장 최소)
-                </label>
-              </div>
-
-              <div class="flex gap-2">
-                <button onclick="calcRecommendation('contract')"
-                        class="px-4 py-3 rounded-xl text-xs font-black bg-slate-900 text-white hover:bg-black transition-all shadow">
-                  계약공기 맞춤 추천값 계산
-                </button>
-                <button onclick="calcRecommendation('standard')"
-                        class="px-4 py-3 rounded-xl text-xs font-black bg-amber-600 text-white hover:bg-amber-500 transition-all shadow">
-                  표준공기 맞춤 추천값 계산
-                </button>
-              </div>
-            </div>
-
-            <div class="mt-4 border border-slate-200 rounded-2xl overflow-hidden">
-              <table class="w-full text-sm">
-                <thead class="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 uppercase">
-                  <tr>
-                    <th class="py-3 px-4 text-left">항목</th>
-                    <th class="py-3 px-3 text-right">현재</th>
-                    <th class="py-3 px-3 text-right">추천</th>
-                    <th class="py-3 px-3 text-right">변경</th>
-                  </tr>
-                </thead>
-                <tbody id="calibDiffTableBody" class="bg-white"></tbody>
-              </table>
-            </div>
-
-            <div class="flex flex-col md:flex-row gap-3 mt-4 items-center">
-              <button id="calibApplyBtn" onclick="applyRecommendation()" disabled
-                      class="w-full md:w-auto px-5 py-3 rounded-xl text-xs font-black bg-emerald-600 text-white hover:bg-emerald-500 transition-all shadow disabled:opacity-40 disabled:cursor-not-allowed">
-                추천값 적용
-              </button>
-              <button id="calibUndoBtn" onclick="undoRecommendation()" disabled
-                      class="w-full md:w-auto px-5 py-3 rounded-xl text-xs font-black bg-slate-200 text-slate-700 hover:bg-slate-300 transition-all shadow disabled:opacity-40 disabled:cursor-not-allowed">
-                되돌리기
-              </button>
-
-              <div class="text-[11px] text-slate-500 font-bold md:ml-auto">
-                ※ 적용은 입력값(가정값)만 변경합니다. 공정 네트워크(선후관계)는 유지됩니다.
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -428,13 +390,13 @@
             일일 유지비: <span class="text-slate-900 font-bold" id="headerIndirectPerDay">--</span>/일
           </div>
 
-          <div class="bg-amber-50 px-3 py-2 rounded-lg text-amber-800 border border-amber-100" id="baselineChip">
-            Baseline(적정 공정계획): <span class="font-black" id="wbsBaseDurationValue">--</span>일
-          </div>
-
           <div class="bg-slate-100 px-3 py-2 rounded-lg">
             표준공기(참고) 기타: <span class="font-black" id="facilityCheckOther">--</span>일 /
             공통: <span class="font-black" id="facilityCheckCommon">--</span>일
+          </div>
+
+          <div class="bg-violet-50 px-3 py-2 rounded-lg text-violet-700 border border-violet-100">
+            현실 최소공기(<span class="font-black" id="realisticMinPercentChip">--</span>%): <span class="font-black" id="realisticMinDuration">--</span>일
           </div>
         </div>
 
@@ -469,7 +431,7 @@
         <div class="bg-emerald-50/40 border border-emerald-100 rounded-2xl p-5">
           <div class="text-[11px] font-black text-emerald-700 uppercase">최소비용 공기(MC)</div>
           <div class="mt-1 text-2xl font-black text-emerald-700"><span id="dashOptimalDuration">--</span><span class="text-sm font-bold text-emerald-500 ml-1">일</span></div>
-          <div class="text-[11px] text-emerald-700/70 mt-1">U-Curve argmin</div>
+          <div class="text-[11px] text-emerald-700/70 mt-1">현실 최소공기 이상 구간 argmin</div>
         </div>
       </div>
 
@@ -503,7 +465,9 @@
                 </h3>
                 <p class="text-xs text-slate-400 mb-6 flex justify-between items-center">
                   <span>계약공기 대비 조정 일수 (+연장 / -단축)</span>
-                  <span class="bg-slate-800 px-2 py-1 rounded text-slate-300 text-[10px]">최대 <span id="maxCrashPossibleDisplay" class="font-bold text-white">--</span>일 단축 가능</span>
+                  <span class="bg-slate-800 px-2 py-1 rounded text-slate-300 text-[10px]">
+                    최대 <span id="maxCrashPossibleDisplay" class="font-bold text-white">--</span>일 단축 가능(현실 최소공기 기준)
+                  </span>
                 </p>
 
                 <div class="flex flex-col items-center justify-center mb-6">
@@ -602,7 +566,7 @@
           <div>
             <h2 class="text-2xl font-black text-slate-900 tracking-tight">Time-Cost 상관 곡선 (U-Curve)</h2>
             <p class="text-slate-500 text-sm mt-1 font-medium">
-              목적: 표준공기(참고) → U-Curve 생성 → 최소비용(MC) → 단축/연장에 따른 공사비 변화 산정
+              목적: 표준공기(참고) → U-Curve 생성 → 최소비용(MC) → 단축/연장 시 공사비 변화 산정
             </p>
           </div>
           <button onclick="toggleChartMode()" id="chartModeBtn"
@@ -612,6 +576,7 @@
         </div>
 
         <div class="flex flex-wrap gap-4 mb-6 text-xs font-bold bg-slate-50 p-4 rounded-2xl border border-slate-100">
+          <span class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-violet-500"></div> <span id="legendRealMin">현실 최소공기</span></span>
           <span class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-amber-500"></div> 표준공기(참고)</span>
           <span class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-slate-500"></div> 계약공기(기준)</span>
           <span class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-emerald-500"></div> 최소비용(MC)</span>
@@ -642,16 +607,10 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5">
           <div class="text-[11px] font-black text-slate-500 uppercase">표준공기(참고)</div>
           <div class="text-2xl font-black text-amber-600 mt-1"><span id="reportStandardDuration">--</span><span class="text-sm font-bold text-slate-400 ml-1">일</span></div>
-        </div>
-
-        <!-- baseline card hidden -->
-        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5" id="baselineReportCard">
-          <div class="text-[11px] font-black text-slate-500 uppercase">Baseline(적정)</div>
-          <div class="text-2xl font-black text-slate-800 mt-1"><span id="reportBaselineDuration">--</span><span class="text-sm font-bold text-slate-400 ml-1">일</span></div>
         </div>
 
         <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5">
@@ -772,6 +731,10 @@
 
       projectType: 'office',
 
+      // realism knobs
+      realisticMinPercent: 90,
+      crewIntensity: 1.00,
+
       officeWbs: {
         tempWorksWorkDays: 12,
         earthworkFoundationWorkDays: 60,
@@ -795,8 +758,9 @@
       currentCPM: null,
 
       standardDuration: 0,
-      wbsBaseDuration: 0,
       facilityCheck: null,
+
+      realisticMinDuration: 0,
 
       simulationPoints: [],
       optimalPoint: null,
@@ -806,18 +770,56 @@
       sliderCollapsed: {}
     };
 
-    let calib = { recommendation: null, undoSnapshot: null };
     let costChart = null;
 
-    // ===== Presets =====
+    // ===== Nonlinear crash penalty (D) =====
+    const CRASH_CURVE = { alpha: 3.0, p: 2.2 };
+
+    // ===== Presets (crewIntensity 연동) =====
     const OFFICE_PRESETS = {
-      normal: { name:'보통(기준)', desc:'평균적인 현장 가정(공통배수 1.0).', annualNonWorkingDays:65, siteFactor:1.0, tempWorksWorkDays:12, earthworkFoundationWorkDays:60, ugFrameWorkDays:31, agFrameWorkDays:12, envelopeWorkDays:8, partitionWorkDays:6, mepRoughWorkDays:8, interiorWorkDays:10, mepFinishWorkDays:4, elecFireWorkDays:6, commissionWorkDays:45, mepStartLagDays:2, pileStartLagDays:5, siteStartLagDays:15 },
-      urban: { name:'도심 협소', desc:'협소부지/양중제약/동선복잡(공통배수 1.15).', annualNonWorkingDays:70, siteFactor:1.15, tempWorksWorkDays:18, earthworkFoundationWorkDays:80, ugFrameWorkDays:34, agFrameWorkDays:13, envelopeWorkDays:9, partitionWorkDays:7, mepRoughWorkDays:9, interiorWorkDays:11, mepFinishWorkDays:5, elecFireWorkDays:7, commissionWorkDays:50, mepStartLagDays:3, pileStartLagDays:7, siteStartLagDays:20 },
-      traffic: { name:'교통/민원(야간·통제)', desc:'작업시간 제약/야간/민원(공통배수 1.10 + 비작업 소폭↑).', annualNonWorkingDays:80, siteFactor:1.10, tempWorksWorkDays:16, earthworkFoundationWorkDays:75, ugFrameWorkDays:33, agFrameWorkDays:13, envelopeWorkDays:9, partitionWorkDays:7, mepRoughWorkDays:9, interiorWorkDays:11, mepFinishWorkDays:5, elecFireWorkDays:7, commissionWorkDays:50, mepStartLagDays:3, pileStartLagDays:7, siteStartLagDays:20 },
-      groundwater:{ name:'지하수/흙막이 고난도', desc:'지하수/차수/흙막이 복잡(공통배수 1.25, 토공·기초↑).', annualNonWorkingDays:70, siteFactor:1.25, tempWorksWorkDays:20, earthworkFoundationWorkDays:105, ugFrameWorkDays:36, agFrameWorkDays:13, envelopeWorkDays:9, partitionWorkDays:7, mepRoughWorkDays:9, interiorWorkDays:11, mepFinishWorkDays:5, elecFireWorkDays:7, commissionWorkDays:55, mepStartLagDays:3, pileStartLagDays:10, siteStartLagDays:20 },
-      rock:{ name:'암반/천공 고난도', desc:'암반/천공/소음제약(공통배수 1.20, 토공·파일↑).', annualNonWorkingDays:70, siteFactor:1.20, tempWorksWorkDays:18, earthworkFoundationWorkDays:95, ugFrameWorkDays:35, agFrameWorkDays:13, envelopeWorkDays:9, partitionWorkDays:7, mepRoughWorkDays:9, interiorWorkDays:11, mepFinishWorkDays:5, elecFireWorkDays:7, commissionWorkDays:55, mepStartLagDays:3, pileStartLagDays:8, siteStartLagDays:20, pileWorkDays:45 },
-      winter:{ name:'동절기/우기(비작업↑)', desc:'동절기·우기로 비작업↑(비작업 95일, 공통배수 1.10).', annualNonWorkingDays:95, siteFactor:1.10, tempWorksWorkDays:16, earthworkFoundationWorkDays:80, ugFrameWorkDays:34, agFrameWorkDays:13, envelopeWorkDays:9, partitionWorkDays:7, mepRoughWorkDays:9, interiorWorkDays:11, mepFinishWorkDays:5, elecFireWorkDays:7, commissionWorkDays:55, mepStartLagDays:3, pileStartLagDays:7, siteStartLagDays:20 }
+      normal: { name:'보통(기준)', desc:'평균적인 현장 가정(공통배수 1.0).', annualNonWorkingDays:65, siteFactor:1.0, crewIntensity:1.00,
+        tempWorksWorkDays:12, earthworkFoundationWorkDays:60, ugFrameWorkDays:31, agFrameWorkDays:12, envelopeWorkDays:8, partitionWorkDays:6, mepRoughWorkDays:8, interiorWorkDays:10, mepFinishWorkDays:4, elecFireWorkDays:6, commissionWorkDays:45, mepStartLagDays:2, pileStartLagDays:5, siteStartLagDays:15
+      },
+      urban: { name:'도심 협소', desc:'협소부지/양중제약/동선복잡(공통배수 1.15, crew 제약↑).', annualNonWorkingDays:70, siteFactor:1.15, crewIntensity:1.20,
+        tempWorksWorkDays:18, earthworkFoundationWorkDays:80, ugFrameWorkDays:34, agFrameWorkDays:13, envelopeWorkDays:9, partitionWorkDays:7, mepRoughWorkDays:9, interiorWorkDays:11, mepFinishWorkDays:5, elecFireWorkDays:7, commissionWorkDays:50, mepStartLagDays:3, pileStartLagDays:7, siteStartLagDays:20
+      },
+      traffic: { name:'교통/민원(야간·통제)', desc:'작업시간 제약/민원(비작업↑, crew 제약↑).', annualNonWorkingDays:80, siteFactor:1.10, crewIntensity:1.15,
+        tempWorksWorkDays:16, earthworkFoundationWorkDays:75, ugFrameWorkDays:33, agFrameWorkDays:13, envelopeWorkDays:9, partitionWorkDays:7, mepRoughWorkDays:9, interiorWorkDays:11, mepFinishWorkDays:5, elecFireWorkDays:7, commissionWorkDays:50, mepStartLagDays:3, pileStartLagDays:7, siteStartLagDays:20
+      },
+      groundwater:{ name:'지하수/흙막이 고난도', desc:'지하수/차수/흙막이 복잡(공통배수 1.25, crew 제약↑).', annualNonWorkingDays:70, siteFactor:1.25, crewIntensity:1.20,
+        tempWorksWorkDays:20, earthworkFoundationWorkDays:105, ugFrameWorkDays:36, agFrameWorkDays:13, envelopeWorkDays:9, partitionWorkDays:7, mepRoughWorkDays:9, interiorWorkDays:11, mepFinishWorkDays:5, elecFireWorkDays:7, commissionWorkDays:55, mepStartLagDays:3, pileStartLagDays:10, siteStartLagDays:20
+      },
+      rock:{ name:'암반/천공 고난도', desc:'암반/천공/소음제약(토공·파일↑, crew 제약↑).', annualNonWorkingDays:70, siteFactor:1.20, crewIntensity:1.15,
+        tempWorksWorkDays:18, earthworkFoundationWorkDays:95, ugFrameWorkDays:35, agFrameWorkDays:13, envelopeWorkDays:9, partitionWorkDays:7, mepRoughWorkDays:9, interiorWorkDays:11, mepFinishWorkDays:5, elecFireWorkDays:7, commissionWorkDays:55, mepStartLagDays:3, pileStartLagDays:8, siteStartLagDays:20, pileWorkDays:45
+      },
+      winter:{ name:'동절기/우기(비작업↑)', desc:'동절기·우기(비작업 95일, crew 제약 약간↑).', annualNonWorkingDays:95, siteFactor:1.10, crewIntensity:1.05,
+        tempWorksWorkDays:16, earthworkFoundationWorkDays:80, ugFrameWorkDays:34, agFrameWorkDays:13, envelopeWorkDays:9, partitionWorkDays:7, mepRoughWorkDays:9, interiorWorkDays:11, mepFinishWorkDays:5, elecFireWorkDays:7, commissionWorkDays:55, mepStartLagDays:3, pileStartLagDays:7, siteStartLagDays:20
+      }
     };
+
+    // ===== UI sync helpers for new controls =====
+    function syncRealisticMinUI(v) {
+      let x = parseInt(v);
+      if (!isFinite(x)) x = 90;
+      x = clamp(x, 90, 100);
+      const r = document.getElementById('realisticMinPercent');
+      const n = document.getElementById('realisticMinPercentNumber');
+      if (r && String(r.value) !== String(x)) r.value = x;
+      if (n && String(n.value) !== String(x)) n.value = x;
+      setVal('realisticMinPercentChip', x);
+      setVal('legendRealMin', `현실 최소공기(${x}%)`);
+    }
+
+    function syncCrewIntensityUI(v) {
+      let x = parseFloat(v);
+      if (!isFinite(x)) x = 1.00;
+      x = clamp(x, 0.80, 1.60);
+      x = Math.round(x * 100) / 100;
+      const r = document.getElementById('crewIntensity');
+      const n = document.getElementById('crewIntensityNumber');
+      if (r && String(r.value) !== String(x)) r.value = x;
+      if (n && String(n.value) !== String(x)) n.value = x;
+    }
 
     function applyOfficePresetFromUI() {
       const key = document.getElementById('officePreset')?.value || 'normal';
@@ -825,7 +827,7 @@
     }
     function applyOfficePreset(key) {
       const p = OFFICE_PRESETS[key] || OFFICE_PRESETS.normal;
-      const setInput = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+      const setInput = (id, v) => { const el = document.getElementById(id); if (el != null) el.value = v; };
 
       setVal('officePresetDesc', `${p.name}: ${p.desc}`);
 
@@ -854,6 +856,9 @@
       setInput('officePileStartLagDays', p.pileStartLagDays ?? 5);
       setInput('officeSiteStartLagDays', p.siteStartLagDays ?? 15);
 
+      // ✅ preset -> crewIntensity
+      if (typeof p.crewIntensity === 'number') syncCrewIntensityUI(p.crewIntensity);
+
       updateGlobalState();
     }
 
@@ -866,11 +871,13 @@
     function getReviewBasisDuration() { return Math.max(1, Math.round(state.targetNormalDuration || 1)); }
     function getIndirectPerDayBasisDuration() { return Math.max(1, getReviewBasisDuration()); }
 
-    function hideBaselineUI() {
-      const chip = document.getElementById('baselineChip');
-      if (chip) chip.style.display = 'none';
-      const card = document.getElementById('baselineReportCard');
-      if (card) card.style.display = 'none';
+    // (1) 현실 최소공기: 표준/계약 중 큰 값 * (minPercent/100)
+    function getRealisticMinDuration() {
+      const contract = getReviewBasisDuration();
+      const std = Math.max(0, Math.round(state.standardDuration || 0));
+      const basis = Math.max(contract, std > 0 ? std : contract);
+      const pct = clamp(Math.round(state.realisticMinPercent || 90), 90, 100) / 100;
+      return Math.max(1, Math.ceil(basis * pct));
     }
 
     // ===== Facility Checks =====
@@ -892,7 +899,15 @@
       };
     }
 
-    function getCostSlope(task) {
+    // ===== Bromilow =====
+    function bromilowDuration(baseDirectCost, K, B) {
+      const C = Math.max(0.0001, baseDirectCost);
+      const C_uk = Math.max(0.0001, C / 100);
+      return Math.max(10, Math.round(K * Math.pow(C_uk, B)));
+    }
+
+    // ===== (D) Nonlinear crash cost =====
+    function getBaseSlope(task) {
       if (!task) return 0;
       if (task.normalDur === task.crashDur) return 0;
       if (!isFinite(task.normalCost) || !isFinite(task.crashCost)) return 0;
@@ -901,11 +916,40 @@
       const slope = (task.crashCost - task.normalCost) / den;
       return isFinite(slope) && slope > 0 ? slope : 0;
     }
+    function getCostSlope(task) {
+      if (!task) return 0;
+      if (task.currentDur <= task.crashDur) return 0;
+      const baseSlope = getBaseSlope(task);
+      if (baseSlope <= 0) return 0;
 
-    function bromilowDuration(baseDirectCost, K, B) {
-      const C = Math.max(0.0001, baseDirectCost);
-      const C_uk = Math.max(0.0001, C / 100);
-      return Math.max(10, Math.round(K * Math.pow(C_uk, B)));
+      const range = Math.max(1, task.normalDur - task.crashDur);
+      const shortened = Math.max(0, task.normalDur - task.currentDur);
+      const nextK = clamp((shortened + 1) / range, 0, 1);
+
+      const factor = 1 + CRASH_CURVE.alpha * Math.pow(nextK, CRASH_CURVE.p);
+      const eff = baseSlope * factor;
+      return isFinite(eff) && eff > 0 ? eff : 0;
+    }
+    function getCrashExtraDirect(task) {
+      if (!task) return 0;
+      const baseSlope = getBaseSlope(task);
+      if (baseSlope <= 0) return 0;
+
+      const range = task.normalDur - task.crashDur;
+      if (range <= 0) return 0;
+
+      const shortened = Math.max(0, task.normalDur - task.currentDur);
+      if (shortened <= 0) return 0;
+
+      let sum = 0;
+      const maxK = Math.min(shortened, range);
+
+      for (let k = 1; k <= maxK; k++) {
+        const r = clamp(k / range, 0, 1);
+        const factor = 1 + CRASH_CURVE.alpha * Math.pow(r, CRASH_CURVE.p);
+        sum += baseSlope * factor;
+      }
+      return isFinite(sum) && sum > 0 ? sum : 0;
     }
 
     // ===== Office WBS Builder =====
@@ -940,6 +984,14 @@
       const pileStartLag = lagScale(opt.pileStartLagDays ?? 5);
       const siteStartLag = lagScale(opt.siteStartLagDays ?? 15);
 
+      // (3) Crew constraints: base ratio * crewIntensity
+      const crewI = clamp(parseFloat(state.crewIntensity || 1.0), 0.8, 1.6);
+      const crewLagEnv = Math.max(1, Math.round(envelope * 0.60 * crewI));
+      const crewLagPart = Math.max(1, Math.round(partition * 0.55 * crewI));
+      const crewLagMepR = Math.max(1, Math.round(mepRough * 0.55 * crewI));
+      const crewLagInterior = Math.max(1, Math.round(interior * 0.60 * crewI));
+      const crewLagMepF = Math.max(1, Math.round(mepFinish * 0.55 * crewI));
+
       const ratios = {
         demolition: 0.02,
         tempWorks: 0.02,
@@ -958,6 +1010,7 @@
       const cost = {};
       Object.keys(ratios).forEach(k => cost[k] = total * ratios[k]);
 
+      // (2) crash 강화
       const makeTask = (id, name, normalDur, crashFactor, normalCost, crashMult, deps = [], isNoCost = false) => {
         const nDur = Math.max(1, Math.round(normalDur));
         const cDur = (crashFactor >= 1.0) ? nDur : Math.max(1, Math.round(nDur * crashFactor));
@@ -975,31 +1028,32 @@
       };
 
       let id = 1;
+
       const idStart = id++;
       makeTask(idStart, '착공 및 준비기간', Math.max(1, state.startAdminDays), 1.0, 0, 1.0, []);
 
       let idDemo = null;
       if ((state.demolitionDays || 0) > 0) {
         idDemo = id++;
-        makeTask(idDemo, '해체·철거공사', Math.max(1, state.demolitionDays), 1.0, cost.demolition, 1.10, [
+        makeTask(idDemo, '해체·철거공사', Math.max(1, state.demolitionDays), 1.0, cost.demolition, 1.20, [
           { pred: idStart, type: 'FS', lag: 0 }
         ]);
       }
 
       const idTemp = id++;
-      makeTask(idTemp, '가설공사(현장설비·동선·가설전기)', tempWorks, 0.95, cost.tempWorks, 1.10, [
+      makeTask(idTemp, '가설공사(현장설비·동선·가설전기)', tempWorks, 0.97, cost.tempWorks, 1.25, [
         { pred: (idDemo ?? idStart), type: 'FS', lag: 0 }
       ]);
 
       const idEarth = id++;
-      makeTask(idEarth, '흙막이·토공·기초', earthworkFound, 0.90, cost.earthwork, 1.20, [
+      makeTask(idEarth, '흙막이·토공·기초', earthworkFound, 0.95, cost.earthwork, 1.60, [
         { pred: idTemp, type: 'FS', lag: 0 }
       ]);
 
       let idPile = null;
       if ((state.pileWorkDays || 0) > 0) {
         idPile = id++;
-        makeTask(idPile, '지정(파일)·지반개량', Math.max(1, state.pileWorkDays), 1.0, cost.pile, 1.10, [
+        makeTask(idPile, '지정(파일)·지반개량', Math.max(1, state.pileWorkDays), 1.0, cost.pile, 1.60, [
           { pred: idTemp, type: 'FS', lag: 0 },
           { pred: idEarth, type: 'SS', lag: pileStartLag }
         ]);
@@ -1010,7 +1064,7 @@
         idBasement = id++;
         const deps = [{ pred: idEarth, type: 'FS', lag: 0 }];
         if (idPile) deps.push({ pred: idPile, type: 'FS', lag: 0 });
-        makeTask(idBasement, `지하 골조공사(B${ugFloors})`, ugFrame * ugFloors, 0.90, cost.basementFrame, 1.60, deps);
+        makeTask(idBasement, `지하 골조공사(B${ugFloors})`, ugFrame * ugFloors, 0.96, cost.basementFrame, 2.20, deps);
       }
 
       const frameCostPerFloor = cost.superFrame / effectiveAG;
@@ -1022,6 +1076,12 @@
       const frameIds = [];
       const mepFinishIds = [];
       const elecFireIds = [];
+
+      let prevEnvId = null;
+      let prevPartId = null;
+      let prevMepRId = null;
+      let prevInteriorId = null;
+      let prevMepFId = null;
 
       for (let fno = 1; fno <= effectiveAG; fno++) {
         let frameDeps = [];
@@ -1036,46 +1096,53 @@
         }
 
         const idFrame = id++;
-        makeTask(idFrame, `지상 골조 F${fno}`, agFrame, 0.90, frameCostPerFloor, 2.00, frameDeps);
+        makeTask(idFrame, `지상 골조 F${fno}`, agFrame, 0.97, frameCostPerFloor, 2.80, frameDeps);
         frameIds.push(idFrame);
 
         const idEnv = id++;
-        makeTask(idEnv, `외장/커튼월 F${fno}`, envelope, 0.85, envCostPerFloor, 1.25, [
-          { pred: idFrame, type: 'FS', lag: 0 }
-        ]);
+        const envDeps = [{ pred: idFrame, type: 'FS', lag: 0 }];
+        if (prevEnvId) envDeps.push({ pred: prevEnvId, type: 'SS', lag: crewLagEnv });
+        makeTask(idEnv, `외장/커튼월 F${fno}`, envelope, 0.95, envCostPerFloor, 1.90, envDeps);
+        prevEnvId = idEnv;
 
         const idPart = id++;
-        makeTask(idPart, `경량벽체/조적 F${fno}`, partition, 0.85, partCostPerFloor, 1.15, [
-          { pred: idFrame, type: 'FS', lag: 0 }
-        ]);
+        const partDeps = [{ pred: idFrame, type: 'FS', lag: 0 }];
+        if (prevPartId) partDeps.push({ pred: prevPartId, type: 'SS', lag: crewLagPart });
+        makeTask(idPart, `경량벽체/조적 F${fno}`, partition, 0.95, partCostPerFloor, 1.50, partDeps);
+        prevPartId = idPart;
 
         const idMepR = id++;
-        makeTask(idMepR, `MEP 러프인 F${fno}`, mepRough, 0.85, mepCostPerFloor * 0.55, 1.30, [
-          { pred: idPart, type: 'SS', lag: mepStartLag }
-        ]);
+        const mepRDeps = [{ pred: idPart, type: 'SS', lag: mepStartLag }];
+        if (prevMepRId) mepRDeps.push({ pred: prevMepRId, type: 'SS', lag: crewLagMepR });
+        makeTask(idMepR, `MEP 러프인 F${fno}`, mepRough, 0.95, mepCostPerFloor * 0.55, 1.90, mepRDeps);
+        prevMepRId = idMepR;
 
         const idInterior = id++;
-        makeTask(idInterior, `내부마감 F${fno}`, interior, 0.85, interiorCostPerFloor, 1.10, [
+        const interiorDeps = [
           { pred: idPart, type: 'FS', lag: 0 },
           { pred: idMepR, type: 'FS', lag: 0 },
           { pred: idEnv, type: 'FS', lag: 0 }
-        ]);
+        ];
+        if (prevInteriorId) interiorDeps.push({ pred: prevInteriorId, type: 'SS', lag: crewLagInterior });
+        makeTask(idInterior, `내부마감 F${fno}`, interior, 0.95, interiorCostPerFloor, 1.70, interiorDeps);
+        prevInteriorId = idInterior;
 
         const idMepF = id++;
-        makeTask(idMepF, `MEP 마감/기기 F${fno}`, mepFinish, 0.85, mepCostPerFloor * 0.45, 1.25, [
-          { pred: idInterior, type: 'FS', lag: 0 }
-        ]);
+        const mepFDeps = [{ pred: idInterior, type: 'FS', lag: 0 }];
+        if (prevMepFId) mepFDeps.push({ pred: prevMepFId, type: 'SS', lag: crewLagMepF });
+        makeTask(idMepF, `MEP 마감/기기 F${fno}`, mepFinish, 0.95, mepCostPerFloor * 0.45, 1.80, mepFDeps);
         mepFinishIds.push(idMepF);
+        prevMepFId = idMepF;
 
         const idEF = id++;
-        makeTask(idEF, `전기·통신·소방 F${fno} (별도)`, elecFire, 0.85, 0, 1.0, [
+        makeTask(idEF, `전기·통신·소방 F${fno} (별도)`, elecFire, 1.0, 0, 1.0, [
           { pred: idFrame, type: 'FS', lag: 0 }
         ], true);
         elecFireIds.push(idEF);
       }
 
       const idSite = id++;
-      makeTask(idSite, '부대토목·조경', cal(f(30)), 0.85, cost.site, 1.20, [
+      makeTask(idSite, '부대토목·조경', cal(f(30)), 0.97, cost.site, 1.50, [
         { pred: frameIds[0], type: 'SS', lag: siteStartLag }
       ]);
 
@@ -1083,7 +1150,7 @@
       const commDeps = [];
       mepFinishIds.forEach(pid => commDeps.push({ pred: pid, type: 'FS', lag: 0 }));
       elecFireIds.forEach(pid => commDeps.push({ pred: pid, type: 'FS', lag: 0 }));
-      makeTask(idComm, 'TAB·시운전·성능검증', commissioning, 0.90, total * 0.01, 1.30, commDeps);
+      makeTask(idComm, 'TAB·시운전·성능검증', commissioning, 0.97, total * 0.02, 1.80, commDeps);
 
       const idClose = id++;
       makeTask(idClose, '준공서류·검사·인허가', Math.max(1, state.endAdminDays), 1.0, 0, 1.0, [
@@ -1188,7 +1255,7 @@
       if (!state.normalCPM) state.normalCPM = JSON.parse(JSON.stringify(state.currentCPM));
     }
 
-    // ===== Dinic =====
+    // ===== Min-cut crash =====
     function dinicMaxFlow(N, s, t, addEdge) {
       const g = Array.from({ length: N }, () => []);
       const INF = 10 ** 15;
@@ -1328,6 +1395,7 @@
       return picked.length ? picked : null;
     }
 
+    // ===== Points utils =====
     function nearestPointByDuration(duration) {
       const pts = state.simulationPoints;
       if (!pts || pts.length === 0) return null;
@@ -1372,6 +1440,12 @@
       for (const p of points) if (p.total < best.total) best = p;
       return best;
     }
+    function findArgMinFeasible(points, minDur) {
+      if (!points || points.length === 0) return null;
+      const feas = points.filter(p => p.duration >= minDur);
+      if (!feas.length) return findArgMinPoint(points);
+      return findArgMinPoint(feas);
+    }
 
     function getContractPoint() { return costAtDuration(getReviewBasisDuration()); }
 
@@ -1393,17 +1467,20 @@
         const dur = overrideDur ?? cpm.projectDur;
 
         let addDirect = 0;
-        if (!isDelay) {
-          taskList.forEach(t => {
-            if (t.normalDur > t.currentDur) addDirect += (t.normalDur - t.currentDur) * getCostSlope(t);
-          });
-        }
+        if (!isDelay) taskList.forEach(t => { addDirect += getCrashExtraDirect(t); });
 
         const totalDirect = state.baseDirectCost + addDirect;
         const totalIndirect = dur * indirectPerDay;
         const total = totalDirect + totalIndirect;
 
-        const pt = { duration: dur, direct: totalDirect, indirect: totalIndirect, total, state: JSON.parse(JSON.stringify(taskList)) };
+        const pt = {
+          duration: dur,
+          direct: totalDirect,
+          indirect: totalIndirect,
+          total,
+          state: JSON.parse(JSON.stringify(taskList))
+        };
+
         points.push(pt);
         if (!isDelay && total < minTotalCost) { minTotalCost = total; optimal = pt; }
       };
@@ -1447,26 +1524,33 @@
       }
 
       state.simulationPoints = points.sort((a, b) => a.duration - b.duration);
-      state.optimalPoint = optimal;
 
-      const best = findArgMinPoint(state.simulationPoints);
-      if (best) state.optimalPoint = best;
+      state.realisticMinDuration = getRealisticMinDuration();
+      const bestFeasible = findArgMinFeasible(state.simulationPoints, state.realisticMinDuration);
+      state.optimalPoint = bestFeasible || optimal || findArgMinPoint(state.simulationPoints);
+
+      setVal('realisticMinDuration', state.realisticMinDuration);
+      setVal('realisticMinDurationMini', state.realisticMinDuration);
+      setVal('realisticMinPercentChip', clamp(Math.round(state.realisticMinPercent || 90), 90, 100));
+      setVal('legendRealMin', `현실 최소공기(${clamp(Math.round(state.realisticMinPercent || 90), 90, 100)}%)`);
     }
 
     function verifyMCPoint() {
       if (!state.simulationPoints || state.simulationPoints.length === 0) return { ok: false, msg: '포인트 없음' };
-      const best = findArgMinPoint(state.simulationPoints);
+      const minDur = state.realisticMinDuration || getRealisticMinDuration();
+      const best = findArgMinFeasible(state.simulationPoints, minDur);
       if (!best) return { ok: false, msg: 'argmin 실패' };
 
       const opt = state.optimalPoint;
-      if (!opt) { state.optimalPoint = best; return { ok: false, msg: `optimal 비어있음 → argmin(${best.duration}일)로 보정` }; }
+      if (!opt) { state.optimalPoint = best; return { ok: false, msg: `optimal 비어있음 → feasible argmin(${best.duration}일)로 보정` }; }
 
       const same = (opt.duration === best.duration) && (Math.abs(opt.total - best.total) < 1e-6);
-      if (!same) { state.optimalPoint = best; return { ok: false, msg: `MC 불일치 → argmin(${best.duration}일)로 보정` }; }
+      if (!same) { state.optimalPoint = best; return { ok: false, msg: `MC 불일치 → feasible argmin(${best.duration}일)로 보정` }; }
 
-      return { ok: true, msg: `OK (MC=${best.duration}일, argmin 일치)` };
+      return { ok: true, msg: `OK (MC=${best.duration}일, 현실최소≥${minDur}일)` };
     }
 
+    // ===== Metrics =====
     function calculateMetrics(taskList) {
       const cpm = calculateCPM(taskList);
 
@@ -1477,7 +1561,7 @@
         : ((state.baseDirectCost * state.overheadRatio) / denom);
 
       let addDirect = 0;
-      taskList.forEach(t => { if (t.normalDur > t.currentDur) addDirect += (t.normalDur - t.currentDur) * getCostSlope(t); });
+      taskList.forEach(t => { addDirect += getCrashExtraDirect(t); });
 
       const dir = state.baseDirectCost + addDirect;
       const ind = cpm.projectDur * indirectPerDay;
@@ -1485,6 +1569,7 @@
       return { duration: cpm.projectDur, direct: dir, indirect: ind, total: dir + ind, indirectPerDay };
     }
 
+    // ===== Dashboard KPI =====
     function updateDashboardKpis() {
       setVal('dashStandardDuration', state.standardDuration ?? '--');
       setVal('dashContractDuration', getReviewBasisDuration() ?? '--');
@@ -1501,7 +1586,7 @@
       return { ...m, mode: 'adjusted' };
     }
 
-    // ===== buffer =====
+    // ===== buffer helper =====
     function withBufferToTarget(taskState, targetDuration) {
       const list = JSON.parse(JSON.stringify(taskState || []));
       if (!list.length) return list;
@@ -1554,10 +1639,10 @@
       let val = parseInt(input.value);
       if (isNaN(val)) { input.value = ''; updateTargetUI(); return; }
 
-      const minPossibleDur = state.simulationPoints?.[0]?.duration ?? getReviewBasisDuration();
-      const maxPointDur = state.simulationPoints?.[state.simulationPoints.length - 1]?.duration ?? getReviewBasisDuration();
-
       const contractDur = getReviewBasisDuration();
+      const minPossibleDur = state.realisticMinDuration || getRealisticMinDuration();
+      const maxPointDur = state.simulationPoints?.[state.simulationPoints.length - 1]?.duration ?? contractDur;
+
       const minDiff = minPossibleDur - contractDur;
       const maxDiff = maxPointDur - contractDur;
 
@@ -1577,10 +1662,10 @@
 
       val += delta;
 
-      const minPossibleDur = state.simulationPoints?.[0]?.duration ?? getReviewBasisDuration();
-      const maxPointDur = state.simulationPoints?.[state.simulationPoints.length - 1]?.duration ?? getReviewBasisDuration();
-
       const contractDur = getReviewBasisDuration();
+      const minPossibleDur = state.realisticMinDuration || getRealisticMinDuration();
+      const maxPointDur = state.simulationPoints?.[state.simulationPoints.length - 1]?.duration ?? contractDur;
+
       const minDiff = minPossibleDur - contractDur;
       const maxDiff = maxPointDur - contractDur;
 
@@ -1594,9 +1679,8 @@
     function updateTargetUI() {
       if (!state.simulationPoints || state.simulationPoints.length === 0) return;
 
-      const minPossibleDur = state.simulationPoints[0].duration;
       const contractDur = getReviewBasisDuration();
-
+      const minPossibleDur = state.realisticMinDuration || getRealisticMinDuration();
       const maxCrashPossible = Math.max(0, contractDur - minPossibleDur);
       setVal('maxCrashPossibleDisplay', maxCrashPossible);
 
@@ -1623,9 +1707,9 @@
       if (isNaN(diffDaysInput)) diffDaysInput = 0;
 
       let targetDuration = contractDur + diffDaysInput;
+
       const maxPointDur = state.simulationPoints[state.simulationPoints.length - 1].duration;
-      if (targetDuration < minPossibleDur) targetDuration = minPossibleDur;
-      if (targetDuration > maxPointDur) targetDuration = maxPointDur;
+      targetDuration = clamp(targetDuration, minPossibleDur, maxPointDur);
 
       setVal(
         'targetDaysDiff',
@@ -1652,6 +1736,7 @@
       if (!state.simulationPoints || state.simulationPoints.length === 0) return;
 
       const contractDur = getReviewBasisDuration();
+      const minPossibleDur = state.realisticMinDuration || getRealisticMinDuration();
 
       let targetDuration = contractDur;
       if (!isContractMode()) {
@@ -1660,6 +1745,9 @@
         if (isNaN(diffDays)) diffDays = 0;
         targetDuration = contractDur + diffDays;
       }
+
+      const maxPointDur = state.simulationPoints[state.simulationPoints.length - 1].duration;
+      targetDuration = clamp(targetDuration, minPossibleDur, maxPointDur);
 
       const pt = nearestPointByDuration(targetDuration);
       if (pt && pt.state) {
@@ -1671,7 +1759,7 @@
       updateUI();
     }
 
-    // ===== Grouping helpers =====
+    // ===== grouping helpers =====
     function parseFloorLabel(name) {
       const m = String(name || '').match(/^(.*?)(?:\sF(\d+))\s*(?:\(([^)]*)\))?\s*$/);
       if (!m) return { base: String(name || '').trim(), floor: null, floorLabel: '' };
@@ -2093,7 +2181,7 @@
       if (crosshair) crosshair.style.display = 'none';
     }
 
-    // ===== Comparison Table (basis = contract) =====
+    // ===== Comparison Table =====
     function updateComparisonTable() {
       const contractDur = getReviewBasisDuration();
       const contractPt = getContractPoint();
@@ -2104,6 +2192,14 @@
       const currentDisplay = getCurrentScenarioDisplay();
 
       const scenarios = [];
+      scenarios.push({
+        id: 'min',
+        name: `현실 최소공기(${clamp(Math.round(state.realisticMinPercent || 90), 90, 100)}%)`,
+        point: costAtDuration(state.realisticMinDuration) || { duration: state.realisticMinDuration, ...contractPt },
+        badge: 'bg-violet-500',
+        rowClass: 'bg-violet-50/40'
+      });
+
       if (stdPt) scenarios.push({ id: 'std', name: '표준공기(참고)', point: stdPt, badge: 'bg-amber-500', rowClass: 'bg-amber-50/40' });
 
       scenarios.push({
@@ -2188,10 +2284,10 @@
 
       const currentDisplay = getCurrentScenarioDisplay();
       const currentX = currentDisplay.duration;
-      const currentLabel = isContractMode() ? '④ 현재(=계약공기)' : '④ 공사기간조정';
+      const currentLabel = isContractMode() ? '⑤ 현재(=계약공기)' : '⑤ 공사기간조정';
 
-      const viewMaxDur = Math.max(getReviewBasisDuration(), state.standardDuration, state.optimalPoint?.duration || 0, currentX);
-      const viewMinDur = Math.min(getReviewBasisDuration(), state.standardDuration, state.optimalPoint?.duration || Infinity, currentX);
+      const viewMaxDur = Math.max(getReviewBasisDuration(), state.standardDuration, state.optimalPoint?.duration || 0, currentX, state.realisticMinDuration);
+      const viewMinDur = Math.min(getReviewBasisDuration(), state.standardDuration, state.optimalPoint?.duration || Infinity, currentX, state.realisticMinDuration);
 
       const chartXMin = Math.floor(Math.max(1, viewMinDur - 40) / 10) * 10;
       const chartXMax = Math.ceil((viewMaxDur + 60) / 10) * 10;
@@ -2207,13 +2303,15 @@
 
       if (costChart) costChart.destroy();
 
+      const pct = clamp(Math.round(state.realisticMinPercent || 90), 90, 100);
+
       costChart = new Chart(ctx, {
         type: 'line',
         data: chartData,
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          layout: { padding: { top: 120 } },
+          layout: { padding: { top: 140 } },
           scales: {
             x: { type: 'linear', min: chartXMin, max: chartXMax, title: { display: true, text: '공사 기간 (일)', font: { weight: 'bold' } }, grid: { display: false }, ticks: { stepSize: 10 } },
             y: { title: { display: true, text: state.chartMode === 'delta' ? '비용 증감 (계약공기 대비, 백만원)' : '총 비용 (백만원)', font: { weight: 'bold' } }, ticks: { callback: v => v.toLocaleString() } }
@@ -2223,9 +2321,10 @@
             tooltip: { mode: 'index', intersect: false },
             verticalLines: {
               lines: [
-                { x: state.standardDuration, text: '① 표준공기(참고)', color: '#f59e0b', dash: [4, 4] },
-                { x: getReviewBasisDuration(), text: '② 계약공기(기준)', color: '#64748b', dash: [4, 4] },
-                { x: state.optimalPoint?.duration ?? NaN, text: '③ 최소비용', color: '#10b981', dash: [] },
+                { x: state.realisticMinDuration, text: `① 현실 최소공기(${pct}%)`, color: '#8b5cf6', dash: [4, 4] },
+                { x: state.standardDuration, text: '② 표준공기(참고)', color: '#f59e0b', dash: [4, 4] },
+                { x: getReviewBasisDuration(), text: '③ 계약공기(기준)', color: '#64748b', dash: [4, 4] },
+                { x: state.optimalPoint?.duration ?? NaN, text: '④ 최소비용(MC)', color: '#10b981', dash: [] },
                 { x: currentX, text: currentLabel, color: '#2563eb', dash: [] }
               ]
             }
@@ -2257,342 +2356,6 @@
       setVal('reportOptimalCheck', v.ok ? `검증: ${v.msg}` : `⚠ ${v.msg}`);
     }
 
-    // ===== Calibration =====
-    function deepClone(obj) { return JSON.parse(JSON.stringify(obj)); }
-
-    function simulateBaselineDurationWithOfficeWbs(officeWbsCandidate) {
-      const saved = deepClone(state.officeWbs);
-      state.officeWbs = deepClone(officeWbsCandidate);
-      const tasks = (state.projectType === 'civil' || state.projectType === 'plant') ? [] : buildOfficeWBS();
-      const dur = (tasks.length > 0) ? calculateCPM(tasks).projectDur : (state.normalCPM?.projectDur ?? 0);
-      state.officeWbs = saved;
-      return dur;
-    }
-
-    const CALIB_FINE_PARAMS = [
-      { key: 'earthworkFoundationWorkDays', label: '흙막이·토공·기초(작업일,전체)', min: 20, max: 220 },
-      { key: 'ugFrameWorkDays', label: '지하 골조(작업일/층)', min: 10, max: 90 },
-      { key: 'agFrameWorkDays', label: '지상 골조(작업일/층)', min: 6, max: 45 },
-      { key: 'interiorWorkDays', label: '내부마감(작업일/층)', min: 4, max: 35 },
-      { key: 'mepRoughWorkDays', label: 'MEP 러프인(작업일/층)', min: 4, max: 35 },
-      { key: 'commissionWorkDays', label: 'TAB·시운전(작업일,전체)', min: 10, max: 140 }
-    ];
-
-    function setOfficeWbsInputsToDOM(officeWbsObj) {
-      const setInput = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
-      if (!officeWbsObj) return;
-
-      setInput('officeTempWorksWorkDays', officeWbsObj.tempWorksWorkDays);
-      setInput('officeEarthworkFoundationWorkDays', officeWbsObj.earthworkFoundationWorkDays);
-      setInput('officeUgFrameWorkDays', officeWbsObj.ugFrameWorkDays);
-      setInput('officeAgFrameWorkDays', officeWbsObj.agFrameWorkDays);
-      setInput('officeEnvelopeWorkDays', officeWbsObj.envelopeWorkDays);
-      setInput('officePartitionWorkDays', officeWbsObj.partitionWorkDays);
-      setInput('officeMepRoughWorkDays', officeWbsObj.mepRoughWorkDays);
-      setInput('officeInteriorWorkDays', officeWbsObj.interiorWorkDays);
-      setInput('officeMepFinishWorkDays', officeWbsObj.mepFinishWorkDays);
-      setInput('officeElecFireWorkDays', officeWbsObj.elecFireWorkDays);
-      setInput('officeCommissionWorkDays', officeWbsObj.commissionWorkDays);
-
-      setInput('officeMepStartLagDays', officeWbsObj.mepStartLagDays);
-      setInput('officePileStartLagDays', officeWbsObj.pileStartLagDays);
-      setInput('officeSiteStartLagDays', officeWbsObj.siteStartLagDays);
-
-      setInput('officeSiteFactor', (officeWbsObj.siteFactor ?? 1.0).toFixed(2));
-    }
-
-    function autoFitOfficeWbsToContract() {
-      if (state.projectType === 'civil' || state.projectType === 'plant') return;
-      const useSite = !!document.getElementById('calibUseSiteFactor')?.checked;
-      if (!useSite) return;
-
-      const useFine = !!document.getElementById('calibUseFineTune')?.checked;
-
-      const target = getReviewBasisDuration();
-      const current = deepClone(state.officeWbs);
-
-      let best = { f: clamp(current.siteFactor ?? 1.0, 0.70, 1.60), diff: Infinity, dur: 0 };
-
-      const tryFactor = (f) => {
-        const w = deepClone(current);
-        w.siteFactor = Math.round(f * 100) / 100;
-        const d = simulateBaselineDurationWithOfficeWbs(w);
-        const diff = Math.abs(d - target);
-
-        const tie =
-          (diff === best.diff) &&
-          (Math.abs(w.siteFactor - (current.siteFactor ?? 1.0)) < Math.abs(best.f - (current.siteFactor ?? 1.0)));
-
-        if (diff < best.diff || tie) best = { f: w.siteFactor, diff, dur: d };
-      };
-
-      for (let f = 0.70; f <= 1.60 + 1e-9; f += 0.05) tryFactor(f);
-      const start = clamp(best.f - 0.10, 0.70, 1.60);
-      const end = clamp(best.f + 0.10, 0.70, 1.60);
-      for (let f = start; f <= end + 1e-9; f += 0.01) tryFactor(f);
-
-      let candidate = deepClone(current);
-      candidate.siteFactor = best.f;
-
-      if (useFine && best.diff > 1) {
-        let guard = 0;
-        while (guard++ < 60) {
-          const curDur = simulateBaselineDurationWithOfficeWbs(candidate);
-          const err = target - curDur;
-          if (Math.abs(err) <= 1) break;
-
-          const dir = err > 0 ? +1 : -1;
-          let bestMove = null;
-
-          for (const p of CALIB_FINE_PARAMS) {
-            const w = deepClone(candidate);
-            const v0 = w[p.key] ?? current[p.key] ?? 0;
-            const v1 = clamp(v0 + dir * 1, p.min, p.max);
-            if (v1 === v0) continue;
-
-            w[p.key] = v1;
-            const d1 = simulateBaselineDurationWithOfficeWbs(w);
-            const improve = Math.abs(err) - Math.abs(target - d1);
-            if (improve <= 0) continue;
-
-            const penalty = Math.abs(v1 - (current[p.key] ?? v0));
-            if (!bestMove || improve > bestMove.improve || (improve === bestMove.improve && penalty < bestMove.penalty)) {
-              bestMove = { key: p.key, next: v1, dur: d1, improve, penalty };
-            }
-          }
-
-          if (!bestMove) break;
-          candidate[bestMove.key] = bestMove.next;
-        }
-      }
-
-      state.officeWbs = candidate;
-      setOfficeWbsInputsToDOM(candidate);
-    }
-
-    function calcRecommendation(type) {
-      if (state.projectType === 'civil' || state.projectType === 'plant') return;
-
-      const useSite = !!document.getElementById('calibUseSiteFactor')?.checked;
-      const useFine = !!document.getElementById('calibUseFineTune')?.checked;
-
-      const target = (type === 'contract') ? getReviewBasisDuration() : state.standardDuration;
-      const current = deepClone(state.officeWbs);
-
-      let candidate = deepClone(current);
-      let bestDur = simulateBaselineDurationWithOfficeWbs(candidate);
-      let bestDiff = Math.abs(bestDur - target);
-
-      if (useSite) {
-        const minF = 0.70, maxF = 1.60, step = 0.01;
-        let bestF = candidate.siteFactor ?? 1.0;
-
-        for (let f = minF; f <= maxF + 1e-9; f += step) {
-          const w = deepClone(candidate);
-          w.siteFactor = Math.round(f * 100) / 100;
-          const d = simulateBaselineDurationWithOfficeWbs(w);
-          const diff = Math.abs(d - target);
-
-          const tie = (diff === bestDiff) && (Math.abs(w.siteFactor - current.siteFactor) < Math.abs(bestF - current.siteFactor));
-
-          if (diff < bestDiff || tie) {
-            bestDiff = diff;
-            bestDur = d;
-            bestF = w.siteFactor;
-          }
-        }
-        candidate.siteFactor = bestF;
-        bestDur = simulateBaselineDurationWithOfficeWbs(candidate);
-        bestDiff = Math.abs(bestDur - target);
-      }
-
-      if (useFine && bestDiff > 1) {
-        let guard = 0;
-        while (guard++ < 80) {
-          const curDur = simulateBaselineDurationWithOfficeWbs(candidate);
-          const err = target - curDur;
-          if (Math.abs(err) <= 1) { bestDur = curDur; bestDiff = Math.abs(err); break; }
-
-          const dir = err > 0 ? +1 : -1;
-          let bestMove = null;
-
-          for (const p of CALIB_FINE_PARAMS) {
-            const w = deepClone(candidate);
-            const v0 = w[p.key] ?? current[p.key] ?? 0;
-            const v1 = clamp(v0 + dir * 1, p.min, p.max);
-            if (v1 === v0) continue;
-            w[p.key] = v1;
-
-            const d1 = simulateBaselineDurationWithOfficeWbs(w);
-            const improve = Math.abs(err) - Math.abs(target - d1);
-
-            if (improve > 0) {
-              const penalty = Math.abs(v1 - (current[p.key] ?? v0));
-              if (!bestMove || improve > bestMove.improve || (improve === bestMove.improve && penalty < bestMove.penalty)) {
-                bestMove = { key: p.key, label: p.label, next: v1, dur: d1, improve, penalty };
-              }
-            }
-          }
-
-          if (!bestMove) { bestDur = curDur; bestDiff = Math.abs(err); break; }
-          candidate[bestMove.key] = bestMove.next;
-          bestDur = bestMove.dur;
-          bestDiff = Math.abs(target - bestDur);
-          if (bestDiff <= 1) break;
-        }
-      }
-
-      calib.recommendation = {
-        type,
-        target,
-        currentWbs: current,
-        recommendedWbs: candidate,
-        predictedBaseline: bestDur,
-        diff: bestDur - target
-      };
-
-      renderCalibDiffTable();
-      updateCalibPanelStatus();
-
-      const applyBtn = document.getElementById('calibApplyBtn');
-      if (applyBtn) applyBtn.disabled = false;
-
-      const undoBtn = document.getElementById('calibUndoBtn');
-      if (undoBtn) undoBtn.disabled = !calib.undoSnapshot;
-    }
-
-    function renderCalibDiffTable() {
-      const tbody = document.getElementById('calibDiffTableBody');
-      if (!tbody) return;
-      tbody.innerHTML = '';
-
-      const r = calib.recommendation;
-      if (!r) {
-        tbody.innerHTML = `<tr><td class="py-4 px-4 text-slate-500 font-bold" colspan="4">추천값 계산을 실행하세요.</td></tr>`;
-        return;
-      }
-
-      const rows = [];
-      rows.push({ key: 'siteFactor', label: '현장난이도 배수(siteFactor)' });
-
-      const showKeys = new Set([
-        'tempWorksWorkDays',
-        'earthworkFoundationWorkDays',
-        'ugFrameWorkDays',
-        'agFrameWorkDays',
-        'envelopeWorkDays',
-        'partitionWorkDays',
-        'mepRoughWorkDays',
-        'interiorWorkDays',
-        'mepFinishWorkDays',
-        'elecFireWorkDays',
-        'commissionWorkDays',
-        'mepStartLagDays',
-        'pileStartLagDays',
-        'siteStartLagDays'
-      ]);
-
-      const labels = {
-        tempWorksWorkDays: '가설공사(작업일,전체)',
-        earthworkFoundationWorkDays: '흙막이·토공·기초(작업일,전체)',
-        ugFrameWorkDays: '지하 골조(작업일/층)',
-        agFrameWorkDays: '지상 골조(작업일/층)',
-        envelopeWorkDays: '외장/커튼월(작업일/층)',
-        partitionWorkDays: '경량벽체/조적(작업일/층)',
-        mepRoughWorkDays: 'MEP 러프인(작업일/층)',
-        interiorWorkDays: '내부마감(작업일/층)',
-        mepFinishWorkDays: 'MEP 마감/기기(작업일/층)',
-        elecFireWorkDays: '전기·통신·소방(작업일/층)',
-        commissionWorkDays: 'TAB·시운전(작업일,전체)',
-        mepStartLagDays: 'MEP 착수 lag(일)',
-        pileStartLagDays: '파일 착수 lag(일)',
-        siteStartLagDays: '부대토목 착수 lag(일)'
-      };
-
-      for (const k of Object.keys(r.recommendedWbs)) {
-        if (!showKeys.has(k)) continue;
-        if (k === 'siteFactor') continue;
-        rows.push({ key: k, label: labels[k] || k });
-      }
-
-      rows.forEach(row => {
-        const cur = r.currentWbs[row.key];
-        const rec = r.recommendedWbs[row.key];
-        const delta = (typeof cur === 'number' && typeof rec === 'number') ? (rec - cur) : 0;
-
-        const changed = (typeof cur === 'number' && typeof rec === 'number') ? (Math.abs(delta) > 1e-9) : (cur !== rec);
-        const tr = document.createElement('tr');
-        tr.className = `border-b border-slate-100 last:border-0 ${changed ? 'bg-emerald-50/30' : ''}`;
-
-        const fmt = (v) => (typeof v === 'number' ? (Number.isInteger(v) ? String(v) : v.toFixed(2)) : String(v ?? ''));
-
-        tr.innerHTML = `
-          <td class="py-3 px-4 text-[12px] font-bold text-slate-700">${row.label}</td>
-          <td class="py-3 px-3 text-right text-[12px] font-bold text-slate-600">${fmt(cur)}</td>
-          <td class="py-3 px-3 text-right text-[12px] font-black ${changed ? 'text-emerald-700' : 'text-slate-700'}">${fmt(rec)}</td>
-          <td class="py-3 px-3 text-right text-[12px] font-black ${delta > 0 ? 'text-rose-600' : delta < 0 ? 'text-blue-600' : 'text-slate-400'}">
-            ${typeof cur === 'number' && typeof rec === 'number' ? (delta > 0 ? '+' : '') + fmt(delta) : (changed ? '변경' : '-')}
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    function updateCalibPanelStatus() {
-      const panel = document.getElementById('autoCalibPanel');
-      if (!panel) return;
-
-      const enabled = !(state.projectType === 'civil' || state.projectType === 'plant');
-      panel.style.display = enabled ? 'block' : 'none';
-      if (!enabled) return;
-
-      setVal('calibCurrentBaseline', `${state.normalCPM?.projectDur ?? '--'}일`);
-      setVal('calibTargetContract', `${getReviewBasisDuration()}일`);
-      setVal('calibTargetStandard', `${state.standardDuration}일`);
-
-      if (calib.recommendation) {
-        setVal('calibPredBaseline', `${Math.round(calib.recommendation.predictedBaseline)}일`);
-        const d = Math.round(calib.recommendation.predictedBaseline - calib.recommendation.target);
-        const txt = (d === 0) ? '0일' : (d > 0 ? `+${d}일` : `${d}일`);
-        const color = (d === 0) ? 'text-slate-600' : (d > 0 ? 'text-rose-600' : 'text-blue-600');
-        setVal('calibPredDiff', `<span class="${color} font-black">${txt}</span>`, true);
-      } else {
-        setVal('calibPredBaseline', '--');
-        setVal('calibPredDiff', '--');
-      }
-
-      const undoBtn = document.getElementById('calibUndoBtn');
-      if (undoBtn) undoBtn.disabled = !calib.undoSnapshot;
-    }
-
-    function applyRecommendation() {
-      const r = calib.recommendation;
-      if (!r) return;
-
-      if (!calib.undoSnapshot) calib.undoSnapshot = deepClone(state.officeWbs);
-
-      setOfficeWbsInputsToDOM(r.recommendedWbs);
-      updateGlobalState();
-
-      const undoBtn = document.getElementById('calibUndoBtn');
-      if (undoBtn) undoBtn.disabled = false;
-    }
-
-    function undoRecommendation() {
-      if (!calib.undoSnapshot) return;
-
-      setOfficeWbsInputsToDOM(calib.undoSnapshot);
-      calib.undoSnapshot = null;
-      calib.recommendation = null;
-
-      const applyBtn = document.getElementById('calibApplyBtn');
-      if (applyBtn) applyBtn.disabled = true;
-
-      updateGlobalState();
-      renderCalibDiffTable();
-      updateCalibPanelStatus();
-    }
-
     // ===== UI update =====
     function updateUI() {
       const metrics = calculateMetrics(state.tasks);
@@ -2607,7 +2370,11 @@
       renderGantt();
       updateChart();
       updateReportBlocks();
-      updateCalibPanelStatus();
+
+      const pct = clamp(Math.round(state.realisticMinPercent || 90), 90, 100);
+      setVal('realisticMinPercentChip', pct);
+      setVal('legendRealMin', `현실 최소공기(${pct}%)`);
+      setVal('realisticMinDurationMini', state.realisticMinDuration || '--');
     }
 
     // ===== Build tasks =====
@@ -2622,9 +2389,6 @@
 
       state.normalCPM = null;
       calculateCurrentCPM();
-
-      state.wbsBaseDuration = state.normalCPM.projectDur;
-      setVal('wbsBaseDurationValue', state.wbsBaseDuration);
 
       state.standardDuration = (state.projectType === 'office')
         ? state.facilityCheck.otherBuilding
@@ -2670,6 +2434,15 @@
 
       state.projectType = document.getElementById('projectType')?.value || 'office';
 
+      // realism knobs
+      const minPct = Math.round(readNum('realisticMinPercentNumber', readNum('realisticMinPercent', 90)));
+      state.realisticMinPercent = clamp(minPct, 90, 100);
+      syncRealisticMinUI(state.realisticMinPercent);
+
+      const crewI = readNum('crewIntensityNumber', readNum('crewIntensity', 1.00));
+      state.crewIntensity = clamp(Math.round(crewI * 100) / 100, 0.80, 1.60);
+      syncCrewIntensityUI(state.crewIntensity);
+
       const scaleContainer = document.getElementById('buildingScaleContainer');
       const officeContainer = document.getElementById('officeWbsOptions');
       const specialContainer = document.getElementById('specialWorksContainer');
@@ -2702,10 +2475,9 @@
         siteFactor: readNum('officeSiteFactor', 1.0)
       };
 
-      autoFitOfficeWbsToContract();
       distributeTasks();
-      updateCalibPanelStatus();
-      hideBaselineUI();
+      renderSliders();
+      updateUI();
     }
 
     // ===== Onload =====
@@ -2713,12 +2485,14 @@
       const today = new Date().toLocaleDateString('ko-KR');
       setVal('reportDate', today);
 
+      // init legend/chips
+      syncRealisticMinUI(document.getElementById('realisticMinPercent')?.value ?? 90);
+      syncCrewIntensityUI(document.getElementById('crewIntensity')?.value ?? 1.00);
+
       const k = document.getElementById('officePreset')?.value || 'normal';
       setVal('officePresetDesc', `${OFFICE_PRESETS[k].name}: ${OFFICE_PRESETS[k].desc}`);
 
-      renderCalibDiffTable();
       updateGlobalState();
-      hideBaselineUI();
     };
   </script>
 </body>
