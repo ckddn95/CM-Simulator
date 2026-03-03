@@ -173,7 +173,7 @@
               </div>
             </div>
 
-            <!-- ✅ Realism controls -->
+            <!-- Realism controls -->
             <div class="mt-4 bg-white border border-slate-200 rounded-xl p-4">
               <div class="flex items-center justify-between gap-3">
                 <div class="text-[11px] font-black text-slate-700 flex items-center gap-2">
@@ -496,7 +496,7 @@
               </button>
 
               <p class="text-[11px] text-slate-400 mt-3">
-                ※ 입력을 비우면 <span class="font-black text-slate-200">계약공기(기준)</span>로 표시됩니다. (공정표 반영 기준)
+                ※ 입력을 비우면 <span class="font-black text-slate-200">계약공기(기준)</span> 공정표가 표시됩니다.
               </p>
             </div>
           </div>
@@ -527,9 +527,11 @@
         <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
           <div>
             <h2 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <i class="fa-solid fa-align-left text-blue-600"></i> 단축 전/후 공정 비교 (Gantt)
+              <i class="fa-solid fa-align-left text-blue-600"></i> 계약 공정표 vs 조정 공정표 (Gantt)
             </h2>
-            <p class="text-slate-500 text-xs mt-1 font-medium italic">Baseline(Gray) vs Current(Colored)</p>
+            <p class="text-slate-500 text-xs mt-1 font-medium italic">
+              계약공정표(Gray) + 현재(조정)공정표(Colored) 동시 표시 / 같은 공종은 층이 바뀌어도 한 줄로 이어서 표시
+            </p>
           </div>
 
           <div class="flex flex-wrap gap-2 items-center">
@@ -539,7 +541,7 @@
             </button>
 
             <div class="flex gap-4 text-[11px] font-black text-slate-500 uppercase tracking-widest bg-slate-50 px-5 py-2 rounded-full border border-slate-100">
-              <span class="flex items-center gap-2"><div class="w-3 h-3 bg-slate-300 rounded-sm"></div> Baseline</span>
+              <span class="flex items-center gap-2"><div class="w-3 h-3 bg-slate-300 rounded-sm"></div> 계약</span>
               <span class="flex items-center gap-2"><div class="w-3 h-3 bg-rose-400 rounded-sm"></div> CP</span>
               <span class="flex items-center gap-2"><div class="w-3 h-3 bg-blue-400 rounded-sm"></div> 일반</span>
             </div>
@@ -731,7 +733,6 @@
 
       projectType: 'office',
 
-      // realism knobs
       realisticMinPercent: 90,
       crewIntensity: 1.00,
 
@@ -753,8 +754,11 @@
         siteFactor: 1.0
       },
 
-      tasks: [],
-      normalCPM: null,
+      baseTasks: [],
+      contractTasks: [], // ✅ 계약 기준 공정표(기준)
+      tasks: [],         // ✅ 현재(조정) 공정표
+
+      contractCPM: null,
       currentCPM: null,
 
       standardDuration: 0,
@@ -772,10 +776,10 @@
 
     let costChart = null;
 
-    // ===== Nonlinear crash penalty (D) =====
+    // ===== Nonlinear crash penalty =====
     const CRASH_CURVE = { alpha: 3.0, p: 2.2 };
 
-    // ===== Presets (crewIntensity 연동) =====
+    // ===== Presets =====
     const OFFICE_PRESETS = {
       normal: { name:'보통(기준)', desc:'평균적인 현장 가정(공통배수 1.0).', annualNonWorkingDays:65, siteFactor:1.0, crewIntensity:1.00,
         tempWorksWorkDays:12, earthworkFoundationWorkDays:60, ugFrameWorkDays:31, agFrameWorkDays:12, envelopeWorkDays:8, partitionWorkDays:6, mepRoughWorkDays:8, interiorWorkDays:10, mepFinishWorkDays:4, elecFireWorkDays:6, commissionWorkDays:45, mepStartLagDays:2, pileStartLagDays:5, siteStartLagDays:15
@@ -797,7 +801,7 @@
       }
     };
 
-    // ===== UI sync helpers for new controls =====
+    // ===== UI sync =====
     function syncRealisticMinUI(v) {
       let x = parseInt(v);
       if (!isFinite(x)) x = 90;
@@ -825,6 +829,7 @@
       const key = document.getElementById('officePreset')?.value || 'normal';
       applyOfficePreset(key);
     }
+
     function applyOfficePreset(key) {
       const p = OFFICE_PRESETS[key] || OFFICE_PRESETS.normal;
       const setInput = (id, v) => { const el = document.getElementById(id); if (el != null) el.value = v; };
@@ -856,7 +861,6 @@
       setInput('officePileStartLagDays', p.pileStartLagDays ?? 5);
       setInput('officeSiteStartLagDays', p.siteStartLagDays ?? 15);
 
-      // ✅ preset -> crewIntensity
       if (typeof p.crewIntensity === 'number') syncCrewIntensityUI(p.crewIntensity);
 
       updateGlobalState();
@@ -871,7 +875,7 @@
     function getReviewBasisDuration() { return Math.max(1, Math.round(state.targetNormalDuration || 1)); }
     function getIndirectPerDayBasisDuration() { return Math.max(1, getReviewBasisDuration()); }
 
-    // (1) 현실 최소공기: 표준/계약 중 큰 값 * (minPercent/100)
+    // ===== Realistic min duration =====
     function getRealisticMinDuration() {
       const contract = getReviewBasisDuration();
       const std = Math.max(0, Math.round(state.standardDuration || 0));
@@ -906,7 +910,7 @@
       return Math.max(10, Math.round(K * Math.pow(C_uk, B)));
     }
 
-    // ===== (D) Nonlinear crash cost =====
+    // ===== Nonlinear crash cost =====
     function getBaseSlope(task) {
       if (!task) return 0;
       if (task.normalDur === task.crashDur) return 0;
@@ -984,7 +988,6 @@
       const pileStartLag = lagScale(opt.pileStartLagDays ?? 5);
       const siteStartLag = lagScale(opt.siteStartLagDays ?? 15);
 
-      // (3) Crew constraints: base ratio * crewIntensity
       const crewI = clamp(parseFloat(state.crewIntensity || 1.0), 0.8, 1.6);
       const crewLagEnv = Math.max(1, Math.round(envelope * 0.60 * crewI));
       const crewLagPart = Math.max(1, Math.round(partition * 0.55 * crewI));
@@ -1010,7 +1013,6 @@
       const cost = {};
       Object.keys(ratios).forEach(k => cost[k] = total * ratios[k]);
 
-      // (2) crash 강화
       const makeTask = (id, name, normalDur, crashFactor, normalCost, crashMult, deps = [], isNoCost = false) => {
         const nDur = Math.max(1, Math.round(normalDur));
         const cDur = (crashFactor >= 1.0) ? nDur : Math.max(1, Math.round(nDur * crashFactor));
@@ -1250,12 +1252,7 @@
       return { projectDur, nodes: Object.values(map), edges };
     }
 
-    function calculateCurrentCPM() {
-      state.currentCPM = calculateCPM(state.tasks);
-      if (!state.normalCPM) state.normalCPM = JSON.parse(JSON.stringify(state.currentCPM));
-    }
-
-    // ===== Min-cut crash =====
+    // ===== Min-cut crash (Dinic) =====
     function dinicMaxFlow(N, s, t, addEdge) {
       const g = Array.from({ length: N }, () => []);
       const INF = 10 ** 15;
@@ -1395,7 +1392,7 @@
       return picked.length ? picked : null;
     }
 
-    // ===== Points utils =====
+    // ===== points utils =====
     function nearestPointByDuration(duration) {
       const pts = state.simulationPoints;
       if (!pts || pts.length === 0) return null;
@@ -1449,12 +1446,52 @@
 
     function getContractPoint() { return costAtDuration(getReviewBasisDuration()); }
 
+    // ===== buffer helper (연장일 경우 계약/목표 맞춤 여유기간 추가) =====
+    function withBufferToTarget(taskState, targetDuration) {
+      const list = JSON.parse(JSON.stringify(taskState || []));
+      if (!list.length) return list;
+
+      const cpm = calculateCPM(list);
+      const curDur = cpm.projectDur;
+      const target = Math.max(1, Math.round(targetDuration || curDur));
+      if (target <= curDur) return list;
+
+      const extra = target - curDur;
+      const maxId = Math.max(...list.map(t => t.id));
+
+      let endIds = cpm.nodes
+        .filter(n => (n.successors?.length || 0) === 0)
+        .map(n => n.id);
+
+      if (!endIds.length) {
+        endIds = cpm.nodes
+          .filter(n => Math.abs(n.ef - curDur) <= 1e-6)
+          .map(n => n.id);
+      }
+      if (!endIds.length) endIds = [list[list.length - 1].id];
+
+      const deps = endIds.map(id => ({ pred: id, type: 'FS', lag: 0 }));
+
+      list.push({
+        id: maxId + 1,
+        name: '여유기간(목표맞춤)',
+        deps,
+        normalDur: extra,
+        currentDur: extra,
+        crashDur: extra,
+        normalCost: 0,
+        crashCost: 0
+      });
+
+      return list;
+    }
+
     // ===== U-Curve =====
     function generateTradeOffData() {
-      let simTasks = JSON.parse(JSON.stringify(state.tasks)).map(t => ({ ...t, currentDur: t.normalDur }));
+      // baseTasks로부터 시작(정상 duration)
+      let simTasks = JSON.parse(JSON.stringify(state.baseTasks)).map(t => ({ ...t, currentDur: t.normalDur }));
       let points = [];
       let minTotalCost = Infinity;
-      let optimal = null;
 
       const baseCPM = calculateCPM(simTasks);
 
@@ -1473,16 +1510,15 @@
         const totalIndirect = dur * indirectPerDay;
         const total = totalDirect + totalIndirect;
 
-        const pt = {
+        points.push({
           duration: dur,
           direct: totalDirect,
           indirect: totalIndirect,
           total,
           state: JSON.parse(JSON.stringify(taskList))
-        };
+        });
 
-        points.push(pt);
-        if (!isDelay && total < minTotalCost) { minTotalCost = total; optimal = pt; }
+        if (!isDelay && total < minTotalCost) minTotalCost = total;
       };
 
       const maxRight = Math.max(
@@ -1492,6 +1528,7 @@
         state.facilityCheck?.commonForm || 0
       ) + 60;
 
+      // delay 영역(연장): state는 동일하되 duration만 증가
       for (let dur = maxRight; dur > baseCPM.projectDur; dur--) record(simTasks, true, dur);
       record(simTasks);
 
@@ -1526,8 +1563,7 @@
       state.simulationPoints = points.sort((a, b) => a.duration - b.duration);
 
       state.realisticMinDuration = getRealisticMinDuration();
-      const bestFeasible = findArgMinFeasible(state.simulationPoints, state.realisticMinDuration);
-      state.optimalPoint = bestFeasible || optimal || findArgMinPoint(state.simulationPoints);
+      state.optimalPoint = findArgMinFeasible(state.simulationPoints, state.realisticMinDuration);
 
       setVal('realisticMinDuration', state.realisticMinDuration);
       setVal('realisticMinDurationMini', state.realisticMinDuration);
@@ -1584,46 +1620,6 @@
       }
       const m = calculateMetrics(state.tasks);
       return { ...m, mode: 'adjusted' };
-    }
-
-    // ===== buffer helper =====
-    function withBufferToTarget(taskState, targetDuration) {
-      const list = JSON.parse(JSON.stringify(taskState || []));
-      if (!list.length) return list;
-
-      const cpm = calculateCPM(list);
-      const curDur = cpm.projectDur;
-      const target = Math.max(1, Math.round(targetDuration || curDur));
-      if (target <= curDur) return list;
-
-      const extra = target - curDur;
-      const maxId = Math.max(...list.map(t => t.id));
-
-      let endIds = cpm.nodes
-        .filter(n => (n.successors?.length || 0) === 0)
-        .map(n => n.id);
-
-      if (!endIds.length) {
-        endIds = cpm.nodes
-          .filter(n => Math.abs(n.ef - curDur) <= 1e-6)
-          .map(n => n.id);
-      }
-      if (!endIds.length) endIds = [list[list.length - 1].id];
-
-      const deps = endIds.map(id => ({ pred: id, type: 'FS', lag: 0 }));
-
-      list.push({
-        id: maxId + 1,
-        name: '여유기간(계약맞춤)',
-        deps,
-        normalDur: extra,
-        currentDur: extra,
-        crashDur: extra,
-        normalCost: 0,
-        crashCost: 0
-      });
-
-      return list;
     }
 
     // ===== Target UI =====
@@ -1691,7 +1687,7 @@
         setVal(
           'targetDaysDiff',
           `<span class="text-slate-300 bg-slate-700/50 px-3 py-1 rounded-full text-[11px]">
-            <i class="fa-solid fa-file-signature mr-1"></i>현재: <strong class="text-blue-300 text-xs">계약공기</strong> 반영
+            <i class="fa-solid fa-file-signature mr-1"></i>현재: <strong class="text-blue-300 text-xs">계약공기</strong> 공정표 표시
             (목표 <strong class="text-blue-300 text-xs">${Math.round(contractDur)}일</strong>)
           </span>`,
           true
@@ -1732,34 +1728,47 @@
       }
     }
 
+    // ✅ 핵심: 계약 기준 공정표(state.contractTasks)는 항상 유지
+    // 조정 시에는 state.tasks만 바뀌고, Gantt는 contractTasks vs tasks를 같이 표시
     function applyTargetDuration() {
       if (!state.simulationPoints || state.simulationPoints.length === 0) return;
 
       const contractDur = getReviewBasisDuration();
       const minPossibleDur = state.realisticMinDuration || getRealisticMinDuration();
 
-      let targetDuration = contractDur;
-      if (!isContractMode()) {
-        const input = document.getElementById('targetDaysInput');
-        let diffDays = parseInt(input?.value);
-        if (isNaN(diffDays)) diffDays = 0;
-        targetDuration = contractDur + diffDays;
+      if (isContractMode()) {
+        state.tasks = JSON.parse(JSON.stringify(state.contractTasks));
+        state.currentCPM = calculateCPM(state.tasks);
+        renderSliders();
+        updateUI();
+        return;
       }
 
+      const input = document.getElementById('targetDaysInput');
+      let diffDays = parseInt(input?.value);
+      if (isNaN(diffDays)) diffDays = 0;
+
+      let targetDuration = contractDur + diffDays;
       const maxPointDur = state.simulationPoints[state.simulationPoints.length - 1].duration;
       targetDuration = clamp(targetDuration, minPossibleDur, maxPointDur);
 
-      const pt = nearestPointByDuration(targetDuration);
-      if (pt && pt.state) {
-        const adjusted = withBufferToTarget(pt.state, targetDuration);
-        state.tasks = JSON.parse(JSON.stringify(adjusted));
-        calculateCurrentCPM();
-        renderSliders();
+      // targetDuration == contractDur이면 계약공정표 그대로
+      if (Math.round(targetDuration) === Math.round(contractDur)) {
+        state.tasks = JSON.parse(JSON.stringify(state.contractTasks));
+      } else {
+        const pt = nearestPointByDuration(targetDuration);
+        if (pt && pt.state) {
+          const adjusted = withBufferToTarget(pt.state, targetDuration);
+          state.tasks = JSON.parse(JSON.stringify(adjusted));
+        }
       }
+
+      state.currentCPM = calculateCPM(state.tasks);
+      renderSliders();
       updateUI();
     }
 
-    // ===== grouping helpers =====
+    // ===== Grouping helpers =====
     function parseFloorLabel(name) {
       const m = String(name || '').match(/^(.*?)(?:\sF(\d+))\s*(?:\(([^)]*)\))?\s*$/);
       if (!m) return { base: String(name || '').trim(), floor: null, floorLabel: '' };
@@ -1779,26 +1788,6 @@
     }
     function normalizeTradeKey(name) {
       return String(name || '').replace(/\sF\d+\s*$/, '').replace(/\s*\(별도\)\s*$/, '').trim();
-    }
-    function assignTracksByOverlap(segments) {
-      const segs = [...segments].sort((a, b) => (a.cStart - b.cStart) || (a.cEnd - b.cEnd));
-      const trackEnds = [];
-      segs.forEach(s => {
-        let placed = false;
-        for (let i = 0; i < trackEnds.length; i++) {
-          if (s.cStart >= trackEnds[i]) {
-            s.track = i;
-            trackEnds[i] = s.cEnd;
-            placed = true;
-            break;
-          }
-        }
-        if (!placed) {
-          s.track = trackEnds.length;
-          trackEnds.push(s.cEnd);
-        }
-      });
-      return { segments: segs, trackCount: trackEnds.length };
     }
 
     // ===== Sliders =====
@@ -1872,7 +1861,7 @@
         t.currentDur = clamp(v, t.crashDur, t.normalDur);
       });
 
-      calculateCurrentCPM();
+      state.currentCPM = calculateCPM(state.tasks);
       renderSliders();
       updateUI();
     }
@@ -1881,7 +1870,7 @@
       const task = state.tasks.find(t => t.id === id);
       if (task) task.currentDur = parseInt(val);
 
-      calculateCurrentCPM();
+      state.currentCPM = calculateCPM(state.tasks);
       renderSliders();
       updateUI();
     }
@@ -2017,55 +2006,87 @@
       renderGantt();
     }
 
+    // ✅ 핵심 변경:
+    // - Baseline = state.contractTasks / state.contractCPM
+    // - Current  = state.tasks / state.currentCPM
+    // - 같은 공종 내 층 변화로 줄(트랙) 분리하지 않고 항상 track=0 (한 줄 유지)
     function buildGanttLanes() {
-      if (!state.normalCPM?.nodes || !state.currentCPM?.nodes) return [];
+      if (!state.contractCPM?.nodes || !state.currentCPM?.nodes) return [];
 
-      const normalNodes = {};
-      const currentNodes = {};
-      state.normalCPM.nodes.forEach(n => (normalNodes[n.id] = n));
-      state.currentCPM.nodes.forEach(n => (currentNodes[n.id] = n));
+      const baseTasks = state.contractTasks || [];
+      const curTasks = state.tasks || [];
 
+      const baseTaskById = {};
+      const curTaskById = {};
+      baseTasks.forEach(t => baseTaskById[t.id] = t);
+      curTasks.forEach(t => curTaskById[t.id] = t);
+
+      const baseNodes = {};
+      const curNodes = {};
+      state.contractCPM.nodes.forEach(n => baseNodes[n.id] = n);
+      state.currentCPM.nodes.forEach(n => curNodes[n.id] = n);
+
+      const idSet = new Set([...baseTasks.map(t => t.id), ...curTasks.map(t => t.id)]);
       const lanesMap = new Map();
 
-      state.tasks.forEach(t => {
-        const n = normalNodes[t.id];
-        const c = currentNodes[t.id];
-        if (!n || !c) return;
+      for (const id of idSet) {
+        const bt = baseTaskById[id];
+        const ct = curTaskById[id];
+        const name = bt?.name ?? ct?.name ?? `TASK ${id}`;
 
-        const { base } = parseFloorLabel(t.name);
+        const { base } = parseFloorLabel(name);
         const key = normalizeTradeKey(base);
 
+        const bn = baseNodes[id];
+        const cn = curNodes[id];
+
+        const bStart = (bn ? bn.es : null);
+        const bDur = (bt ? bt.currentDur : null);
+
+        const cStart = (cn ? cn.es : null);
+        const cDur = (ct ? ct.currentDur : null);
+
         const seg = {
-          id: t.id,
-          label: extractPositionLabel(t.name),
-          nStart: n.es,
-          nDur: t.normalDur,
-          cStart: c.es,
-          cDur: t.currentDur,
-          isFixed: t.normalDur === t.crashDur,
-          isNoCost: (t.normalCost === 0 && t.crashCost === 0),
-          isCP: !!c.isCP
+          id,
+          label: extractPositionLabel(name),
+          name,
+          bStart, bDur,
+          cStart, cDur,
+          isFixed: ((ct ?? bt)?.normalDur === (ct ?? bt)?.crashDur),
+          isNoCost: (((ct ?? bt)?.normalCost ?? 0) === 0 && ((ct ?? bt)?.crashCost ?? 0) === 0),
+          isCP: !!cn?.isCP,
+          track: 0
         };
 
         if (!lanesMap.has(key)) lanesMap.set(key, []);
         lanesMap.get(key).push(seg);
-      });
+      }
 
       const lanes = [];
       for (const [key, segs] of lanesMap.entries()) {
-        const minStart = Math.min(...segs.map(s => s.nStart));
-        const { segments, trackCount } = assignTracksByOverlap(segs);
-        lanes.push({ label: key, minStart, segments, trackCount: Math.max(1, trackCount) });
+        // 정렬: 계약 기준 시작시간 우선(없으면 현재 시작시간)
+        segs.sort((a, b) => {
+          const as = (a.bStart ?? a.cStart ?? 0);
+          const bs = (b.bStart ?? b.cStart ?? 0);
+          if (as !== bs) return as - bs;
+          return (a.id - b.id);
+        });
+
+        const minStart = Math.min(...segs.map(s => (s.bStart ?? s.cStart ?? 0)));
+
+        // ✅ 트랙 분리 금지(층 바뀌어도 한 줄 이어서 표시)
+        lanes.push({ label: key, minStart, segments: segs, trackCount: 1 });
       }
+
       lanes.sort((a, b) => a.minStart - b.minStart);
       return lanes;
     }
 
     function renderGantt() {
       const container = document.getElementById('ganttContainer');
-      if (!container || !state.normalCPM || !state.currentCPM) return;
+      if (!container || !state.contractCPM || !state.currentCPM) return;
 
-      const maxDur = Math.max(state.normalCPM.projectDur, state.currentCPM.projectDur);
+      const maxDur = Math.max(state.contractCPM.projectDur, state.currentCPM.projectDur);
       const ticks = [];
       for (let i = 0; i <= maxDur; i += 30) ticks.push(i);
       if (ticks[ticks.length - 1] !== maxDur && (maxDur - ticks[ticks.length - 1]) > 10) ticks.push(maxDur);
@@ -2078,13 +2099,15 @@
       bg += `</div>`;
 
       const lanes = buildGanttLanes();
-      const trackGap = 20, topPad = 10, baseLineH = 3, curBarH = 9, baseYOffset = 3, curYOffset = 10;
+
+      // 한 줄 고정
+      const trackGap = 20, topPad = 10, baseLineH = 3, curBarH = 9, baseYOffset = 8, curYOffset = 14;
 
       let html = bg;
       html += `<div class="relative z-10 space-y-3">`;
 
       lanes.forEach(lane => {
-        const laneH = Math.max(44, topPad + lane.trackCount * trackGap + 10);
+        const laneH = 44;
 
         html += `
           <div class="flex items-stretch gap-4 group">
@@ -2095,35 +2118,41 @@
         `;
 
         lane.segments.forEach(seg => {
-          const t = seg.track || 0;
-          const nLeft = (seg.nStart / maxDur) * 100;
-          const nWidth = (seg.nDur / maxDur) * 100;
-          const cLeft = (seg.cStart / maxDur) * 100;
-          const cWidth = (seg.cDur / maxDur) * 100;
-          const yBase = topPad + t * trackGap + baseYOffset;
-          const yCur = topPad + t * trackGap + curYOffset;
-
-          const curClass = seg.isFixed ? 'bg-slate-800'
-            : seg.isNoCost ? 'bg-slate-400'
-            : seg.isCP ? 'bg-rose-400'
-            : 'bg-blue-400';
-
-          html += `
-            <div class="absolute bg-slate-200 rounded-full"
-                 style="left:${nLeft}%; width:${nWidth}%; top:${yBase}px; height:${baseLineH}px"></div>
-            <div class="absolute ${curClass} rounded-md shadow-sm"
-                 style="left:${cLeft}%; width:${cWidth}%; top:${yCur}px; height:${curBarH}px"></div>
-          `;
-
-          if (seg.label) {
-            const center = clamp(cLeft + (cWidth / 2), 0.5, 99.5);
-            const yLabel = Math.max(0, yCur - 14);
+          // 계약(베이스)
+          if (seg.bStart != null && seg.bDur != null && seg.bDur > 0) {
+            const nLeft = (seg.bStart / maxDur) * 100;
+            const nWidth = (seg.bDur / maxDur) * 100;
             html += `
-              <div class="absolute text-[9px] font-black text-slate-700 bg-white/90 border border-slate-200 rounded px-1 py-[1px] shadow-sm whitespace-nowrap pointer-events-none"
-                   style="left:${center}%; top:${yLabel}px; transform:translateX(-50%);">
-                ${seg.label}
-              </div>
+              <div class="absolute bg-slate-200 rounded-full"
+                   style="left:${nLeft}%; width:${nWidth}%; top:${topPad + baseYOffset}px; height:${baseLineH}px"></div>
             `;
+          }
+
+          // 현재(조정)
+          if (seg.cStart != null && seg.cDur != null && seg.cDur > 0) {
+            const cLeft = (seg.cStart / maxDur) * 100;
+            const cWidth = (seg.cDur / maxDur) * 100;
+
+            const curClass = seg.isFixed ? 'bg-slate-800'
+              : seg.isNoCost ? 'bg-slate-400'
+              : seg.isCP ? 'bg-rose-400'
+              : 'bg-blue-400';
+
+            html += `
+              <div class="absolute ${curClass} rounded-md shadow-sm"
+                   style="left:${cLeft}%; width:${cWidth}%; top:${topPad + curYOffset}px; height:${curBarH}px"></div>
+            `;
+
+            if (seg.label) {
+              const center = clamp(cLeft + (cWidth / 2), 0.5, 99.5);
+              const yLabel = Math.max(0, topPad + curYOffset - 14);
+              html += `
+                <div class="absolute text-[9px] font-black text-slate-700 bg-white/90 border border-slate-200 rounded px-1 py-[1px] shadow-sm whitespace-nowrap pointer-events-none"
+                     style="left:${center}%; top:${yLabel}px; transform:translateX(-50%);">
+                  ${seg.label}
+                </div>
+              `;
+            }
           }
         });
 
@@ -2152,7 +2181,7 @@
       const wrapper = document.getElementById('ganttWrapper');
       const crosshair = document.getElementById('ganttCrosshair');
       const label = document.getElementById('ganttCrosshairLabel');
-      if (!wrapper || !crosshair || !label || !state.currentCPM) return;
+      if (!wrapper || !crosshair || !label || !state.contractCPM || !state.currentCPM) return;
 
       const rect = wrapper.getBoundingClientRect();
       const x = e.clientX - rect.left;
@@ -2168,7 +2197,7 @@
       crosshair.style.transform = `translateX(${x}px)`;
       label.style.top = `${y}px`;
 
-      const maxDur = Math.max(state.normalCPM.projectDur, state.currentCPM.projectDur);
+      const maxDur = Math.max(state.contractCPM.projectDur, state.currentCPM.projectDur);
       const timelineWidth = rect.width - offsetLeft;
       const ratio = (x - offsetLeft) / timelineWidth;
 
@@ -2377,29 +2406,47 @@
       setVal('realisticMinDurationMini', state.realisticMinDuration || '--');
     }
 
-    // ===== Build tasks =====
+    // ===== Contract schedule build =====
+    function buildContractSchedule() {
+      const contractDur = getReviewBasisDuration();
+
+      // simulation point에서 계약기간 근처 state를 가져오고, 연장 필요 시 버퍼 추가
+      const pt = nearestPointByDuration(contractDur);
+      const baseState = pt?.state ? JSON.parse(JSON.stringify(pt.state)) : JSON.parse(JSON.stringify(state.baseTasks));
+      const contractTasks = withBufferToTarget(baseState, contractDur);
+
+      state.contractTasks = JSON.parse(JSON.stringify(contractTasks));
+      state.contractCPM = calculateCPM(state.contractTasks);
+    }
+
+    // ===== distribute/build =====
     function distributeTasks() {
       state.facilityCheck = computeFacilityChecks();
       setVal('facilityCheckOther', state.facilityCheck.otherBuilding);
       setVal('facilityCheckCommon', state.facilityCheck.commonForm);
 
-      if (state.projectType === 'civil') state.tasks = buildBromilowWBS(30, 0.30);
-      else if (state.projectType === 'plant') state.tasks = buildBromilowWBS(35, 0.35);
-      else state.tasks = buildOfficeWBS();
+      // baseTasks 생성
+      if (state.projectType === 'civil') state.baseTasks = buildBromilowWBS(30, 0.30);
+      else if (state.projectType === 'plant') state.baseTasks = buildBromilowWBS(35, 0.35);
+      else state.baseTasks = buildOfficeWBS();
 
-      state.normalCPM = null;
-      calculateCurrentCPM();
-
+      // 표준공기 계산
       state.standardDuration = (state.projectType === 'office')
         ? state.facilityCheck.otherBuilding
         : state.facilityCheck.commonForm;
 
+      // U-Curve 생성
       generateTradeOffData();
 
+      // ✅ 계약 기준 공정표 생성/고정
+      buildContractSchedule();
+
+      // 기본은 계약 모드
       const input = document.getElementById('targetDaysInput');
       if (input) input.value = '';
 
-      applyTargetDuration();
+      state.tasks = JSON.parse(JSON.stringify(state.contractTasks));
+      state.currentCPM = calculateCPM(state.tasks);
     }
 
     // ===== Update global state =====
@@ -2485,7 +2532,6 @@
       const today = new Date().toLocaleDateString('ko-KR');
       setVal('reportDate', today);
 
-      // init legend/chips
       syncRealisticMinUI(document.getElementById('realisticMinPercent')?.value ?? 90);
       syncCrewIntensityUI(document.getElementById('crewIntensity')?.value ?? 1.00);
 
