@@ -564,14 +564,18 @@
       return new Intl.NumberFormat('ko-KR').format(Math.round(v));
     }
 
+    // ✅ 전기·통신·소방 "F1 (별도)" 형태도 층/공종 분리되도록 개선
     function parseFloorLabel(name) {
-      const m = name.match(/\sF(\d+)\s*$/);
-      if (!m) return { base: name, floor: null, floorLabel: '' };
-      return {
-        base: name.replace(/\sF\d+\s*$/, '').trim(),
-        floor: parseInt(m[1], 10),
-        floorLabel: `F${m[1]}`
-      };
+      // 예) "전기·통신·소방 F3 (별도)" / "외장/커튼월 F2" 모두 처리
+      // 끝에서: " F숫자" + optional "(...)" 를 함께 인식
+      const m = name.match(/^(.*?)(?:\sF(\d+))\s*(?:\(([^)]*)\))?\s*$/);
+      if (!m) return { base: name.trim(), floor: null, floorLabel: '' };
+
+      const base = (m[1] || '').trim();
+      const floor = parseInt(m[2], 10);
+      const floorLabel = `F${m[2]}`;
+
+      return { base, floor, floorLabel };
     }
 
     function normalizeTradeKey(name) {
@@ -600,6 +604,15 @@
         }
       });
       return { segments: segs, trackCount: trackEnds.length };
+    }
+
+    function escapeHtmlAttr(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
     }
 
     // ===== Chart Plugin: Vertical Lines =====
@@ -689,10 +702,8 @@
       normalCPM: null,
       currentCPM: null,
 
-      // 표준공기(공식 검증치로 표시)
-      standardDuration: 0,
-      // WBS 기준(기준계획)
-      wbsBaseDuration: 0,
+      standardDuration: 0, // 공식 검증치로 표시
+      wbsBaseDuration: 0,  // 기준 공정계획(정상 WBS) 공기
 
       facilityCheck: null,
 
@@ -701,7 +712,6 @@
 
       chartMode: 'delta',
 
-      // gantt + sliders
       ganttMode: 'grouped', // 'grouped' | 'detail'
       sliderCollapsed: {}   // tradeKey -> bool
     };
@@ -764,7 +774,7 @@
       const mepStartLag = Math.max(0, opt.mepStartLagDays ?? 2);
       const siteStartLag = Math.max(0, opt.siteStartLagDays ?? 15);
 
-      // 비용 배분 기본(참고용)
+      // 비용 배분(참고용)
       const ratios = {
         demolition: 0.02,
         earthwork: 0.06,
@@ -1214,13 +1224,12 @@
         const c = currentNodes[t.id];
         if (!n || !c) return;
 
-        const { base, floorLabel, floor } = parseFloorLabel(t.name);
+        const { base, floorLabel } = parseFloorLabel(t.name);
         const key = normalizeTradeKey(base);
 
         const seg = {
           id: t.id,
           label: floorLabel || '',
-          floor: floor,
           baseName: base,
 
           nStart: n.es,
@@ -1315,7 +1324,6 @@
         });
       }
 
-      // 정렬: 기준계획 ES 기준(대체: 현재 CPM ES 기준 최소값)
       list.sort((a, b) => {
         const aMin = Math.min(...a.items.map(it => it.node?.es ?? 0));
         const bMin = Math.min(...b.items.map(it => it.node?.es ?? 0));
@@ -1393,7 +1401,6 @@
 
         let body = '';
 
-        // group slider (공종 전체를 한 번에)
         if (!collapsed && g.groupSettable) {
           body += `
             <div class="mt-4 bg-white rounded-2xl border border-slate-200 p-4">
@@ -1413,7 +1420,6 @@
           `;
         }
 
-        // per-floor sliders
         if (!collapsed) {
           body += `<div class="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">`;
           g.items.forEach(it => {
@@ -1440,9 +1446,7 @@
               <div class="relative bg-slate-50/50 p-4 rounded-2xl border border-slate-100 hover:border-blue-200 transition-colors">
                 <div class="flex items-start justify-between gap-2 mb-3">
                   <div class="flex flex-col gap-1">
-                    <div class="text-[12px] font-black text-slate-900">
-                      ${it.floorLabel ? it.floorLabel : ''} <span class="text-slate-500 font-bold">${it.floorLabel ? '' : ''}</span>
-                    </div>
+                    <div class="text-[12px] font-black text-slate-900">${it.floorLabel ? it.floorLabel : ''}</div>
                     <div class="flex flex-wrap gap-1 items-center">${badge}</div>
                   </div>
                   ${slopeTag}
@@ -1473,10 +1477,6 @@
           </div>
         `;
       });
-    }
-
-    function escapeHtmlAttr(str) {
-      return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
     // ===== UI: Gantt (Grouped/Detail) =====
